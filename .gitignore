@@ -19,9 +19,10 @@ backend/uploads/
 *.csv
 *.xlsx
 *.xls
-inventario_real.csv
 *.xltx
 !backend/templates/plantilla_inventario.xltx
+backend/templates/plantilla_activa.*
+backend/templates/plantilla_metadata.json
 
 # Archivos temporales del sistema y del editor
 .DS_Store

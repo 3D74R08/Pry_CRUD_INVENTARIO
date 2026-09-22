@@ -44,8 +44,20 @@ router.post(
   tareasController.crearTareaCargaMasiva
 );
 
+// Consultar información y metadatos de la plantilla oficial activa
+router.get('/plantilla/info', authenticateToken, tareasController.getPlantillaInfo);
+
 // Descargar plantilla oficial de inventario (.xltx)
 router.get('/plantilla', authenticateToken, tareasController.descargarPlantilla);
+
+// Subir / Configurar plantilla oficial de inventario de la empresa (Solo ADMIN)
+router.post(
+  '/plantilla',
+  authenticateToken,
+  authorize(['ADMIN']),
+  upload.single('plantilla'),
+  tareasController.subirPlantilla
+);
 
 // Consultar estado de una tarea por ID
 router.get('/:id', authenticateToken, tareasController.getTareaById);

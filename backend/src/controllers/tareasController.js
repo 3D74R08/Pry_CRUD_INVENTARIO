@@ -99,17 +99,131 @@ async function getTareas(req, res) {
   }
 }
 
+// Obtener información y metadatos de la plantilla activa
+function getPlantillaInfo(req, res) {
+  try {
+    const metaPath = path.join(__dirname, '../../templates/plantilla_metadata.json');
+    const rutaActiva = path.join(__dirname, '../../templates/plantilla_activa.xltx');
+    const rutaBase = path.join(__dirname, '../../templates/plantilla_inventario.xltx');
+
+    if (fs.existsSync(metaPath) && fs.existsSync(rutaActiva)) {
+      const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+      return res.json({
+        metadata: {
+          ...meta,
+          existe: true,
+        },
+      });
+    }
+
+    if (fs.existsSync(rutaBase)) {
+      const stats = fs.statSync(rutaBase);
+      return res.json({
+        metadata: {
+          filename: 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx',
+          updatedAt: stats.mtime.toISOString(),
+          updatedBy: 'Plantilla Base del Sistema',
+          size: stats.size,
+          isCustom: false,
+          existe: true,
+        },
+      });
+    }
+
+    return res.status(404).json({ error: 'No hay plantilla configurada en el sistema' });
+  } catch (error) {
+    console.error('[Tareas] Error al consultar información de plantilla:', error);
+    return res.status(500).json({ error: 'Error al consultar metadatos de la plantilla' });
+  }
+}
+
+// Subir / Actualizar plantilla maestra oficial (Solo ADMIN)
+async function subirPlantilla(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Debes adjuntar un archivo de plantilla válido (.xltx o .xlsx)' });
+    }
+
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (!['.xltx', '.xlsx'].includes(ext)) {
+      return res.status(400).json({ error: 'Formato no soportado. Debe ser un archivo .xltx o .xlsx' });
+    }
+
+    const templatesDir = path.join(__dirname, '../../templates');
+    if (!fs.existsSync(templatesDir)) {
+      fs.mkdirSync(templatesDir, { recursive: true });
+    }
+
+    const destinoActiva = path.join(templatesDir, 'plantilla_activa.xltx');
+    const metaPath = path.join(templatesDir, 'plantilla_metadata.json');
+
+    // Copiar archivo subido como la plantilla activa
+    fs.copyFileSync(req.file.path, destinoActiva);
+
+    const metadata = {
+      filename: req.file.originalname,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user.nombre_completo || req.user.email,
+      size: req.file.size,
+      isCustom: true,
+    };
+
+    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+
+    // Registrar en auditoría inmutable
+    try {
+      await db.query(
+        `INSERT INTO eventos_inventario (usuario_id, tipo_evento, descripcion, detalles)
+         VALUES ($1, 'MODIFICACION', $2, $3)`,
+        [
+          req.user.id,
+          `Actualización de Plantilla Oficial de Inventario: ${req.file.originalname} por ${req.user.nombre_completo}`,
+          JSON.stringify({
+            archivo_original: req.file.originalname,
+            tamano_bytes: req.file.size,
+            mimetype: req.file.mimetype,
+          }),
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('[Tareas] No se pudo registrar auditoría de plantilla:', auditErr);
+    }
+
+    return res.json({
+      message: `Plantilla oficial "${req.file.originalname}" configurada exitosamente.`,
+      metadata,
+    });
+  } catch (error) {
+    console.error('[Tareas] Error al subir plantilla oficial:', error);
+    return res.status(500).json({ error: 'Error al guardar la nueva plantilla oficial' });
+  }
+}
+
 // Descargar plantilla maestra oficial (.xltx)
 function descargarPlantilla(req, res) {
   try {
-    const rutaPlantilla = path.join(__dirname, '../../templates/plantilla_inventario.xltx');
-    if (!fs.existsSync(rutaPlantilla)) {
+    const rutaActiva = path.join(__dirname, '../../templates/plantilla_activa.xltx');
+    const rutaBase = path.join(__dirname, '../../templates/plantilla_inventario.xltx');
+    const metaPath = path.join(__dirname, '../../templates/plantilla_metadata.json');
+
+    let archivoADescargar = rutaBase;
+    let nombreArchivo = 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx';
+
+    if (fs.existsSync(rutaActiva)) {
+      archivoADescargar = rutaActiva;
+      if (fs.existsSync(metaPath)) {
+        try {
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+          if (meta.filename) nombreArchivo = meta.filename;
+        } catch (_) {}
+      }
+    } else if (!fs.existsSync(rutaBase)) {
       return res.status(404).json({ error: 'Plantilla no encontrada en el servidor' });
     }
 
-    res.setHeader('Content-Disposition', 'attachment; filename="FRMA-07_INVENTARIO_TECNOLOGICO.xltx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.template');
-    const fileStream = fs.createReadStream(rutaPlantilla);
+    const fileStream = fs.createReadStream(archivoADescargar);
     fileStream.pipe(res);
   } catch (error) {
     console.error('[Tareas] Error al descargar plantilla:', error);
@@ -122,5 +236,7 @@ module.exports = {
   getTareaById,
   getTareas,
   descargarPlantilla,
+  getPlantillaInfo,
+  subirPlantilla,
 };
 

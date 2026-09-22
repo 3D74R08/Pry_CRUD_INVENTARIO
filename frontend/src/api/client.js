@@ -126,6 +126,18 @@ export const api = {
   },
   getTareaById: (id) => request(`/tareas/${id}`),
   getTareas: () => request('/tareas'),
+  getPlantillaInfo: () => request('/tareas/plantilla/info'),
+  subirPlantillaOficial: async (file) => {
+    const formData = new FormData();
+    formData.append('plantilla', file);
+    const token = localStorage.getItem('activos_ti_token');
+    return request('/tareas/plantilla', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
   descargarPlantilla: async () => {
     const token = localStorage.getItem('activos_ti_token');
     const response = await fetch('/api/tareas/plantilla', {
@@ -135,11 +147,19 @@ export const api = {
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData.error || 'Error al descargar la plantilla oficial');
     }
+
+    let filename = 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx';
+    const disposition = response.headers.get('content-disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx';
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

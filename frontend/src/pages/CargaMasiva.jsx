@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function CargaMasiva({ onNavigate }) {
+  const { user } = useAuth();
+  const isAdmin = user?.rol === 'ADMIN';
+
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tareaActiva, setTareaActiva] = useState(null);
@@ -9,6 +13,13 @@ export default function CargaMasiva({ onNavigate }) {
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Plantilla oficial
+  const [plantillaInfo, setPlantillaInfo] = useState(null);
+  const [modalPlantillaOpen, setModalPlantillaOpen] = useState(false);
+  const [archivoPlantilla, setArchivoPlantilla] = useState(null);
+  const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
+  const [errorPlantilla, setErrorPlantilla] = useState('');
 
   // Stepper state: 1 = Subir archivo, 2 = Procesando en Worker, 3 = Resultado
   const getPasoActual = () => {
@@ -29,8 +40,18 @@ export default function CargaMasiva({ onNavigate }) {
     }
   };
 
+  const cargarPlantillaInfo = async () => {
+    try {
+      const data = await api.getPlantillaInfo();
+      setPlantillaInfo(data.metadata || null);
+    } catch (err) {
+      console.error('Error al consultar info de plantilla:', err);
+    }
+  };
+
   useEffect(() => {
     cargarHistorial();
+    cargarPlantillaInfo();
   }, []);
 
   // Polling del estado de la tarea activa mientras esté PENDIENTE o EN_PROCESO
@@ -154,6 +175,24 @@ export default function CargaMasiva({ onNavigate }) {
     setError('');
   };
 
+  const handleSubirPlantillaOficial = async (e) => {
+    e.preventDefault();
+    if (!archivoPlantilla) return;
+    setSubiendoPlantilla(true);
+    setErrorPlantilla('');
+    try {
+      const res = await api.subirPlantillaOficial(archivoPlantilla);
+      setMensaje(res.message || 'Plantilla oficial actualizada con éxito.');
+      setModalPlantillaOpen(false);
+      setArchivoPlantilla(null);
+      cargarPlantillaInfo();
+    } catch (err) {
+      setErrorPlantilla(err.message || 'Error al actualizar plantilla');
+    } finally {
+      setSubiendoPlantilla(false);
+    }
+  };
+
   return (
     <div>
       {/* Banner Explicativo Arquitectura Worker */}
@@ -196,8 +235,71 @@ export default function CargaMasiva({ onNavigate }) {
           >
             📄 Plantilla CSV
           </button>
+          {isAdmin && (
+            <button
+              className="btn btn-warning"
+              onClick={() => {
+                setErrorPlantilla('');
+                setModalPlantillaOpen(true);
+              }}
+              title="Configurar o reemplazar la plantilla oficial de tu empresa (.xltx / .xlsx)"
+            >
+              📤 Configurar Plantilla Oficial
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Información de Plantilla Oficial Activa */}
+      {plantillaInfo && (
+        <div
+          className="card"
+          style={{
+            padding: '12px 18px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            background: '#ffffff',
+            border: '1px solid var(--border)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '24px' }}>📑</span>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>Plantilla Maestra Activa:</span>
+                <span className="placa-tag" style={{ fontSize: '12px', background: '#2563eb' }}>
+                  {plantillaInfo.filename}
+                </span>
+                {plantillaInfo.isCustom && (
+                  <span className="badge badge-funcional" style={{ fontSize: '10.5px' }}>
+                    Personalizada por Empresa
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                Configurada por: <b>{plantillaInfo.updatedBy}</b> · Actualizada:{' '}
+                {new Date(plantillaInfo.updatedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {(plantillaInfo.size / 1024).toFixed(1)} KB
+              </div>
+            </div>
+          </div>
+          {isAdmin && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setErrorPlantilla('');
+                setModalPlantillaOpen(true);
+              }}
+            >
+              ⚙️ Cambiar Plantilla
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stepper Visual de 3 Pasos (Panel 6) */}
       <div className="stepper-container">
@@ -501,6 +603,81 @@ export default function CargaMasiva({ onNavigate }) {
           </table>
         </div>
       </div>
+
+      {/* Modal Configurar / Subir Plantilla Oficial (Solo ADMIN) */}
+      {modalPlantillaOpen && (
+        <div className="modal-backdrop" onClick={() => setModalPlantillaOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Configurar Plantilla Oficial de la Empresa</h3>
+              <button className="btn-icon" onClick={() => setModalPlantillaOpen(false)}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubirPlantillaOficial}>
+              <div className="modal-body">
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                  Sube el archivo Excel o plantilla oficial (<code>.xltx</code> o <code>.xlsx</code>) de tu empresa. Esta plantilla quedará configurada como la oficial para todas las descargas del equipo y procesamientos de carga masiva.
+                </p>
+
+                <div
+                  style={{
+                    border: '2px dashed var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '24px',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    cursor: 'pointer',
+                    marginBottom: '14px',
+                  }}
+                  onClick={() => document.getElementById('input-archivo-plantilla').click()}
+                >
+                  <input
+                    id="input-archivo-plantilla"
+                    type="file"
+                    accept=".xltx,.xlsx"
+                    style={{ display: 'none' }}
+                    onChange={(e) => setArchivoPlantilla(e.target.files[0] || null)}
+                  />
+                  <div style={{ fontSize: '36px', marginBottom: '8px' }}>📑</div>
+                  <div style={{ fontWeight: 600, fontSize: '13px' }}>
+                    {archivoPlantilla ? archivoPlantilla.name : 'Haz clic para seleccionar el archivo .xltx o .xlsx'}
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {archivoPlantilla
+                      ? `${(archivoPlantilla.size / 1024).toFixed(1)} KB`
+                      : 'Formatos soportados: Plantilla de Excel (.xltx) o Libro (.xlsx)'}
+                  </div>
+                </div>
+
+                {errorPlantilla && (
+                  <div style={{ color: 'var(--danger)', fontSize: '12.5px', marginBottom: '10px' }}>
+                    ⚠️ {errorPlantilla}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setModalPlantillaOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!archivoPlantilla || subiendoPlantilla}
+                >
+                  {subiendoPlantilla ? '⏳ Guardando...' : '📤 Guardar como Plantilla Oficial'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
