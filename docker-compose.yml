@@ -45,6 +45,7 @@ services:
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads-data:/app/uploads
+      - ./backend/templates:/app/templates
     networks:
       - inventario-net
     depends_on:
