@@ -1,0 +1,19 @@
+{
+  "name": "activos-ti-worker",
+  "version": "1.0.0",
+  "description": "Worker autónomo asíncrono para procesamiento en segundo plano",
+  "main": "src/worker.js",
+  "scripts": {
+    "start": "node src/worker.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.5",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

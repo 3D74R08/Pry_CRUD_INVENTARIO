@@ -1,0 +1,102 @@
+services:
+  # ============================================================
+  # 1. Base de Datos: PostgreSQL 16 (Red Aislada)
+  # ============================================================
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: inventario-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-inventario_db}
+      POSTGRES_USER: ${DB_USER:-inventario_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-inventario_secret_pass_2026}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - inventario-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-inventario_user} -d ${DB_NAME:-inventario_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # 2. API Core (Backend Express + Node.js)
+  # ============================================================
+  api-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inventario-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5000
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-inventario_db}
+      DB_USER: ${DB_USER:-inventario_user}
+      DB_PASSWORD: ${DB_PASSWORD:-inventario_secret_pass_2026}
+      JWT_SECRET: ${JWT_SECRET:-jwt_super_secret_key_prod_activos_ti_998877_xyz}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads-data:/app/uploads
+    networks:
+      - inventario-net
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  # ============================================================
+  # 3. Worker Autónomo (Headless Node.js, Database Polling)
+  # ============================================================
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: inventario-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-inventario_db}
+      DB_USER: ${DB_USER:-inventario_user}
+      DB_PASSWORD: ${DB_PASSWORD:-inventario_secret_pass_2026}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-5000}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads-data:/app/uploads
+    networks:
+      - inventario-net
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  # ============================================================
+  # 4. Frontend (React + Vite servido con Nginx)
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: inventario-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - inventario-net
+    depends_on:
+      - api-core
+
+networks:
+  inventario-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  uploads-data:
