@@ -1,15 +1,7 @@
-const { Pool } = require('pg');
+const { pool } = require('./db');
 const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
 const path = require('path');
-
-const pool = new Pool({
-  host: process.env.DB_HOST || 'postgres-db',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME || 'inventario_db',
-  user: process.env.DB_USER || 'inventario_user',
-  password: process.env.DB_PASSWORD || 'inventario_secret_pass_2026',
-});
 
 function parseExcelDate(excelVal) {
   if (!excelVal) return null;

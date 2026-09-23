@@ -9,7 +9,7 @@ Plataforma corporativa centralizada para la gestión, auditoría y trazabilidad 
 El sistema desacopla la carga de trabajo en 4 servicios independientes sobre una red interna aislada:
 
 1. **Frontend (SPA):** Desarrollado con **React 18 + Vite**, servido en producción con **Nginx** (Puerto `3000:80`).
-2. **API Core (Backend):** Desarrollado con **Node.js + Express** (Puerto `5000:5000`). Encargado del control de acceso RBAC, validación de JWT y operaciones CRUD síncronas.
+2. **API Core (Backend):** Desarrollado con **Node.js + Express** (Puerto interno `5000`, aislado en la red privada de Docker). Encargado del control de acceso RBAC, validación de JWT y operaciones CRUD síncronas enrutadas vía reverse proxy por Nginx.
 3. **Base de Datos:** **PostgreSQL 16** alojada en la red privada de Docker, sin exposición de puertos al exterior para minimizar la superficie de ataque.
 4. **Worker Autónomo:** Proceso headless independiente en **Node.js** sin puertos de red abiertos. Realiza **Database Polling** sobre `tareas_worker` utilizando la cláusula atómica `SELECT ... FOR UPDATE SKIP LOCKED` para procesar cargas masivas y emitir trazabilidad sin bloquear la API principal.
 
@@ -38,7 +38,7 @@ El sistema desacopla la carga de trabajo en 4 servicios independientes sobre una
 
 4. **Acceder a la aplicación:**
    * **Frontend Web:** Abre tu navegador en [http://localhost:3000](http://localhost:3000)
-   * **API Core Healthcheck:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
+   * **API Core Healthcheck:** [http://localhost:3000/api/health](http://localhost:3000/api/health) (a través del reverse proxy Nginx)
 
 ---
 

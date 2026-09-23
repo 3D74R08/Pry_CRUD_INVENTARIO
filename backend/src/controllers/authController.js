@@ -2,8 +2,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'jwt_super_secret_key_prod_activos_ti_998877_xyz';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
+
+if (!JWT_SECRET) {
+  console.error('[CRITICAL] JWT_SECRET no está configurado en las variables de entorno.');
+}
 
 async function login(req, res) {
   try {

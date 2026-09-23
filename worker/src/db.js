@@ -6,7 +6,7 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT || '5432', 10),
   database: process.env.DB_NAME || 'inventario_db',
   user: process.env.DB_USER || 'inventario_user',
-  password: process.env.DB_PASSWORD || 'inventario_secret_pass_2026',
+  password: process.env.DB_PASSWORD,
   max: 10,
   idleTimeoutMillis: 30000,
 });
