@@ -40,7 +40,7 @@ services:
       DB_NAME: ${DB_NAME:-inventario_db}
       DB_USER: ${DB_USER:-inventario_user}
       DB_PASSWORD: ${DB_PASSWORD:-inventario_secret_pass_2026}
-      JWT_SECRET: ${JWT_SECRET:-jwt_super_secret_key_prod_activos_ti_998877_xyz}
+      JWT_SECRET: ${JWT_SECRET:-clave_secreta_jwt_debe_definirse_en_archivo_env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       UPLOAD_DIR: /app/uploads
     volumes:
