@@ -128,7 +128,7 @@ export default function Reportes() {
         <>
           {/* Pestaña: Inventario por Tipo */}
           {tabActivo === 'inventario' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="reportes-two-col-grid">
               <div className="card">
                 <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>
                   Resumen por Categoría de Hardware
@@ -218,7 +218,7 @@ export default function Reportes() {
 
           {/* Pestaña: Salud y Estados */}
           {tabActivo === 'estados' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="reportes-two-col-grid">
               <div className="card">
                 <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>
                   Estado Operativo del Hardware

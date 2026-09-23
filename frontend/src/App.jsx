@@ -16,6 +16,7 @@ export default function App() {
   const { user, token, canManageInventory, canManageUsers, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [moduloActivo, setModuloActivo] = useState('todos');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -86,21 +87,38 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Backdrop overlay para pantallas táctiles y móviles cuando el sidebar está abierto */}
+      {sidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+
       <Sidebar
         currentView={currentView}
         setView={setCurrentView}
         moduloActivo={moduloActivo}
         setModuloActivo={setModuloActivo}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <div className="main-wrapper">
         <header className="topbar">
-          <div>
-            <h1 className="topbar-title">{title}</h1>
-            <p className="topbar-subtitle">{sub}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label="Abrir Menú de Navegación"
+            >
+              ☰
+            </button>
+            <div style={{ minWidth: 0 }}>
+              <h1 className="topbar-title">{title}</h1>
+              <p className="topbar-subtitle">{sub}</p>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          <div className="topbar-user-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+            <span className="topbar-user-name" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               Sesión: <b>{user.nombre_completo}</b>
             </span>
             <span className={`user-role-badge ${(user.rol || 'EMPLEADO').toLowerCase()}`}>

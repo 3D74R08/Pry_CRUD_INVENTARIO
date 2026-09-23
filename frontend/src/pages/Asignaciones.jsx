@@ -221,7 +221,7 @@ export default function Asignaciones() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '20px' }}>
+      <div className="asignaciones-split-grid">
         {/* Columna Izquierda: Directorio según Modo */}
         <div className="content-panel" style={{ height: 'fit-content' }}>
           <div className="panel-header">

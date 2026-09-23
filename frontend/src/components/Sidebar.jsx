@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 
-export default function Sidebar({ currentView, setView, moduloActivo, setModuloActivo }) {
+export default function Sidebar({ currentView, setView, moduloActivo, setModuloActivo, isOpen, onClose }) {
   const { user, isAdmin, isTecnico, canManageInventory, canManageUsers, logout } = useAuth();
   const [conteos, setConteos] = useState({
     todos: 0,
@@ -37,19 +37,37 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
     }
   };
 
+  const handleNav = (targetView) => {
+    setView(targetView);
+    if (onClose) onClose();
+  };
+
   const handleSelectModulo = (modKey) => {
     setModuloActivo(modKey);
     setView('equipos');
+    if (onClose) onClose();
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        <div className="sidebar-logo">TI</div>
-        <div>
-          <div className="sidebar-title">Activos TI</div>
-          <div className="sidebar-subtitle">Control · Trazabilidad</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="sidebar-logo">TI</div>
+          <div>
+            <div className="sidebar-title">Activos TI</div>
+            <div className="sidebar-subtitle">Control · Trazabilidad</div>
+          </div>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Cerrar Menú"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <nav className="sidebar-nav">
@@ -59,21 +77,21 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
             <div className="nav-section-title">Mi Portal</div>
             <button
               className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setView('dashboard')}
+              onClick={() => handleNav('dashboard')}
             >
               <span className="nav-icon">📊</span>
               <span>Inicio</span>
             </button>
             <button
               className={`nav-link ${currentView === 'mis-equipos' ? 'active' : ''}`}
-              onClick={() => setView('mis-equipos')}
+              onClick={() => handleNav('mis-equipos')}
             >
               <span className="nav-icon">💻</span>
               <span>Mis Equipos</span>
             </button>
             <button
               className={`nav-link ${currentView === 'reportar-fallo' ? 'active' : ''}`}
-              onClick={() => setView('reportar-fallo')}
+              onClick={() => handleNav('reportar-fallo')}
             >
               <span className="nav-icon">⚠️</span>
               <span>Reportar Fallo</span>
@@ -85,7 +103,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
             <div className="nav-section-title">Principal</div>
             <button
               className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setView('dashboard')}
+              onClick={() => handleNav('dashboard')}
             >
               <span className="nav-icon">📊</span>
               <span>Inicio</span>
@@ -102,7 +120,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
 
             <button
               className={`nav-link ${currentView === 'asignaciones' ? 'active' : ''}`}
-              onClick={() => setView('asignaciones')}
+              onClick={() => handleNav('asignaciones')}
             >
               <span className="nav-icon">⚡</span>
               <span>Asignaciones</span>
@@ -201,7 +219,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
 
             <button
               className={`nav-link ${currentView === 'control-cambios' ? 'active' : ''}`}
-              onClick={() => setView('control-cambios')}
+              onClick={() => handleNav('control-cambios')}
             >
               <span className="nav-icon">🕒</span>
               <span>Control de Cambios</span>
@@ -212,7 +230,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
             {canManageUsers && (
               <button
                 className={`nav-link ${currentView === 'usuarios' ? 'active' : ''}`}
-                onClick={() => setView('usuarios')}
+                onClick={() => handleNav('usuarios')}
               >
                 <span className="nav-icon">👥</span>
                 <span>Usuarios</span>
@@ -221,7 +239,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
 
             <button
               className={`nav-link ${currentView === 'carga-masiva' ? 'active' : ''}`}
-              onClick={() => setView('carga-masiva')}
+              onClick={() => handleNav('carga-masiva')}
             >
               <span className="nav-icon">📥</span>
               <span>Carga Masiva (Worker)</span>
@@ -229,7 +247,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
 
             <button
               className={`nav-link ${currentView === 'tareas' ? 'active' : ''}`}
-              onClick={() => setView('tareas')}
+              onClick={() => handleNav('tareas')}
             >
               <span className="nav-icon">⏱️</span>
               <span>Tareas Worker</span>
@@ -237,7 +255,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
 
             <button
               className={`nav-link ${currentView === 'reportes' ? 'active' : ''}`}
-              onClick={() => setView('reportes')}
+              onClick={() => handleNav('reportes')}
             >
               <span className="nav-icon">📈</span>
               <span>Reportes</span>

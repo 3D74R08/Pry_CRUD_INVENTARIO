@@ -359,7 +359,7 @@ export default function CargaMasiva({ onNavigate }) {
       )}
 
       {/* Área Principal de Carga y Monitor */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginBottom: '24px' }}>
+      <div className="carga-masiva-split-grid">
         {/* Formulario de Subida con Drag & Drop */}
         <div className="card">
           <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>
