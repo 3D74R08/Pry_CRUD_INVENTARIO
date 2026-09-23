@@ -22,11 +22,6 @@ export default function Login() {
     }
   };
 
-  const handleFillDemo = (demoEmail, demoPass) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-  };
-
   return (
     <div className="login-split-page">
       {/* Columna Izquierda: Branding Hero y Arquitectura */}
@@ -137,42 +132,6 @@ export default function Login() {
               {loading ? 'Autenticando...' : 'Acceder a la Plataforma'}
             </button>
           </form>
-
-          {/* Acceso Rápido Demo con 1-Click */}
-          <div className="demo-credentials" style={{ marginTop: '24px' }}>
-            <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              Acceso Rápido Demo (1-Click):
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '12px', padding: '6px 10px', justifyContent: 'space-between' }}
-                onClick={() => handleFillDemo('admin@empresa.local', 'Admin123!')}
-              >
-                <span>👑 <b>Administrador</b> (Control Total)</span>
-                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Cargar</span>
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '12px', padding: '6px 10px', justifyContent: 'space-between' }}
-                onClick={() => handleFillDemo('tecnico@empresa.local', 'Tecnico123!')}
-              >
-                <span>🛠️ <b>Técnico</b> (Inventario sin Usuarios)</span>
-                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Cargar</span>
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '12px', padding: '6px 10px', justifyContent: 'space-between' }}
-                onClick={() => handleFillDemo('empleado@empresa.local', 'Empleado123!')}
-              >
-                <span>👤 <b>Empleado</b> (Solo Activos Propios)</span>
-                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Cargar</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
