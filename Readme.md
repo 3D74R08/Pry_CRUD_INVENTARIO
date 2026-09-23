@@ -42,6 +42,39 @@ El sistema desacopla la carga de trabajo en 4 servicios independientes sobre una
 
 ---
 
+## 🖥️ Despliegue en Servidor Local / Proxmox VE (LAN / WiFi Privada)
+
+La plataforma está lista para correr en tu servidor **Proxmox VE** (en una Máquina Virtual Ubuntu/Debian o un Contenedor LXC con Docker), permitiendo el acceso de todos tus colaboradores desde computadores y teléfonos celulares conectados a la red WiFi o cableada de tu empresa, **sin necesidad de exponer ningún puerto ni equipo a internet**.
+
+### Pasos en la Máquina Virtual o Contenedor Proxmox:
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/3D74R08/Pry_CRUD_INVENTARIO.git
+   cd Pry_CRUD_INVENTARIO
+   ```
+
+2. **Crear el archivo de entorno `.env`:**
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Iniciar los servicios con Docker Compose:**
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Acceso desde cualquier equipo o celular en la misma red:**
+   Conoce la IP local de tu máquina en Proxmox (por ejemplo ejecutando `ip a` o `hostname -I`, digamos `192.168.1.150`):
+   * Desde tu **PC de escritorio o laptop**: `http://192.168.1.150:3000`
+   * Desde tu **teléfono celular (vía WiFi de la empresa)**: `http://192.168.1.150:3000`
+     *(El diseño se adaptará automáticamente a la vista táctil móvil con menú hamburguesa ☰)*.
+
+5. **Configurar la Plantilla Oficial de la Empresa:**
+   Inicia sesión con el usuario Administrador, dirígete al módulo **Carga Masiva** y presiona el botón **`📤 Configurar Plantilla Oficial`** para cargar el archivo `.xltx` o `.xlsx` maestro de tu empresa.
+
+---
+
 ## 👥 Credenciales de Prueba Preconfiguradas (Datos Semilla)
 
 Al iniciar por primera vez, PostgreSQL ejecuta automáticamente los scripts `01-schema.sql` y `02-seed.sql` creando los siguientes usuarios de demostración:
