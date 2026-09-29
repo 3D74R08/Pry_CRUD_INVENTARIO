@@ -247,7 +247,7 @@ export default function TareasWorker({ onNavigate }) {
               </div>
 
               {tareaSeleccionada.error_mensaje && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '6px', color: '#991b1b', fontSize: '12.5px' }}>
+                <div style={{ background: 'var(--danger-light)', border: '1px solid var(--danger)', padding: '10px 14px', borderRadius: '6px', color: 'var(--danger)', fontSize: '12.5px' }}>
                   <b>Error Reportado:</b> {tareaSeleccionada.error_mensaje}
                 </div>
               )}

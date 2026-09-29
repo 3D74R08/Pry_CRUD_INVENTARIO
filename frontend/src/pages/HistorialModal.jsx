@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { XIcon } from '../components/Icons';
 
 export default function HistorialModal({ equipo, onClose }) {
   const [eventos, setEventos] = useState([]);
@@ -35,8 +36,8 @@ export default function HistorialModal({ equipo, onClose }) {
               Placa: <b className="placa-tag">{equipo.placa}</b> · {equipo.marca} {equipo.modelo}
             </div>
           </div>
-          <button className="btn-icon" onClick={onClose} style={{ fontSize: '18px' }}>
-            ✕
+          <button className="btn-icon" onClick={onClose}>
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -67,9 +68,10 @@ export default function HistorialModal({ equipo, onClose }) {
                   {ev.detalles && Object.keys(ev.detalles).length > 0 && (
                     <pre
                       style={{
-                        background: '#f8fafc',
+                        background: 'var(--bg-app)',
+                        color: 'var(--text-main)',
                         padding: '8px',
-                        borderRadius: '4px',
+                        borderRadius: '6px',
                         fontSize: '11px',
                         marginTop: '6px',
                         overflowX: 'auto',

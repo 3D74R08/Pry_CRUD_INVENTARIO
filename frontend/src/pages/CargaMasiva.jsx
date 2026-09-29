@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { ZapIcon, DownloadIcon, FileTextIcon, UploadCloudIcon, RefreshCwIcon, LaptopIcon, ClockIcon, AlertTriangleIcon, XIcon, PlusIcon } from '../components/Icons';
 
 export default function CargaMasiva({ onNavigate }) {
   const { user } = useAuth();
@@ -196,25 +197,14 @@ export default function CargaMasiva({ onNavigate }) {
   return (
     <div>
       {/* Banner Explicativo Arquitectura Worker */}
-      <div
-        style={{
-          background: 'linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%)',
-          border: '1px solid #bfdbfe',
-          borderRadius: 'var(--radius)',
-          padding: '14px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
+      <div className="async-processing-banner">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '24px' }}>⚡</span>
+          <ZapIcon size={24} color="#38bdf8" />
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1e3a8a' }}>
+            <div className="async-banner-title">
               Procesamiento Asíncrono Desacoplado (DevSecOps)
             </div>
-            <div style={{ fontSize: '12px', color: '#3b82f6' }}>
+            <div className="async-banner-desc">
               La API responde inmediatamente con <b>HTTP 202 Accepted</b> y el Worker en segundo plano realiza validaciones y registros sin bloquear el servidor.
             </div>
           </div>
@@ -225,15 +215,17 @@ export default function CargaMasiva({ onNavigate }) {
             onClick={handleDescargarPlantillaOficial}
             disabled={descargandoPlantilla}
             title="Descargar libro maestro oficial FRMA-07 (.xltx) con todas las 9 hojas del inventario"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {descargandoPlantilla ? '⏳ Descargando...' : '📥 Descargar Plantilla Maestra (.xltx)'}
+            {descargandoPlantilla ? 'Descargando...' : <><DownloadIcon size={14} /> Descargar Plantilla Maestra (.xltx)</>}
           </button>
           <button
             className="btn btn-secondary"
             onClick={handleDescargarPlantilla}
             title="Descargar plantilla CSV simple"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            📄 Plantilla CSV
+            <FileTextIcon size={14} /> Plantilla CSV
           </button>
           {isAdmin && (
             <button
@@ -243,8 +235,9 @@ export default function CargaMasiva({ onNavigate }) {
                 setModalPlantillaOpen(true);
               }}
               title="Configurar o reemplazar la plantilla oficial de tu empresa (.xltx / .xlsx)"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              📤 Configurar Plantilla Oficial
+              <UploadCloudIcon size={14} /> Configurar Plantilla Oficial
             </button>
           )}
         </div>
@@ -261,17 +254,15 @@ export default function CargaMasiva({ onNavigate }) {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            background: '#ffffff',
-            border: '1px solid var(--border)',
             flexWrap: 'wrap',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>📑</span>
+            <FileTextIcon size={24} color="var(--primary)" />
             <div>
               <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span>Plantilla Maestra Activa:</span>
-                <span className="placa-tag" style={{ fontSize: '12px', background: '#2563eb' }}>
+                <span style={{ color: 'var(--text-main)' }}>Plantilla Maestra Activa:</span>
+                <span className="placa-tag" style={{ fontSize: '12px' }}>
                   {plantillaInfo.filename}
                 </span>
                 {plantillaInfo.isCustom && (
@@ -281,7 +272,7 @@ export default function CargaMasiva({ onNavigate }) {
                 )}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                Configurada por: <b>{plantillaInfo.updatedBy}</b> · Actualizada:{' '}
+                Configurada por: <b style={{ color: 'var(--text-main)' }}>{plantillaInfo.updatedBy}</b> · Actualizada:{' '}
                 {new Date(plantillaInfo.updatedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {(plantillaInfo.size / 1024).toFixed(1)} KB
               </div>
             </div>
@@ -294,8 +285,9 @@ export default function CargaMasiva({ onNavigate }) {
                 setErrorPlantilla('');
                 setModalPlantillaOpen(true);
               }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             >
-              ⚙️ Cambiar Plantilla
+              <RefreshCwIcon size={13} /> Cambiar Plantilla
             </button>
           )}
         </div>
@@ -374,12 +366,12 @@ export default function CargaMasiva({ onNavigate }) {
                 Los registros válidos han sido incorporados en la base de datos PostgreSQL y auditados en el historial.
               </p>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                <button className="btn btn-primary" onClick={handleNuevaCarga}>
-                  + Cargar Otro Archivo
+                <button className="btn btn-primary" onClick={handleNuevaCarga} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <PlusIcon size={14} /> Cargar Otro Archivo
                 </button>
                 {onNavigate && (
-                  <button className="btn btn-secondary" onClick={() => onNavigate('equipos')}>
-                    💻 Ver Inventario General
+                  <button className="btn btn-secondary" onClick={() => onNavigate('equipos')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <LaptopIcon size={14} /> Ver Inventario General
                   </button>
                 )}
               </div>
@@ -393,7 +385,9 @@ export default function CargaMasiva({ onNavigate }) {
                 onDrop={handleDrop}
                 onClick={() => document.getElementById('fileInput').click()}
               >
-                <div className="dropzone-icon">📁</div>
+                <div className="dropzone-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '8px' }}>
+                  <UploadCloudIcon size={38} color="#2563eb" />
+                </div>
                 <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-main)' }}>
                   {file ? file.name : 'Haz clic o arrastra un archivo CSV o Excel aquí'}
                 </div>
@@ -422,9 +416,9 @@ export default function CargaMasiva({ onNavigate }) {
                   type="submit"
                   className="btn btn-primary"
                   disabled={loading || !file || pasoActual === 2}
-                  style={{ minWidth: '180px', justifyContent: 'center' }}
+                  style={{ minWidth: '180px', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  {loading ? 'Subiendo...' : pasoActual === 2 ? '⚙️ Worker Trabajando...' : '⚡ Iniciar Carga Masiva'}
+                  {loading ? 'Subiendo...' : pasoActual === 2 ? <><RefreshCwIcon size={14} className="spin" /> Worker Procesando...</> : <><ZapIcon size={14} /> Iniciar Carga Masiva</>}
                 </button>
               </div>
             </form>
@@ -439,7 +433,9 @@ export default function CargaMasiva({ onNavigate }) {
 
           {!tareaActiva ? (
             <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '30px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>⏱️</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                <ClockIcon size={36} color="var(--text-muted)" />
+              </div>
               <div style={{ fontWeight: 600 }}>No hay tarea activa en este momento</div>
               <div style={{ fontSize: '12px', marginTop: '4px' }}>
                 Al cargar un archivo, se activará el sondeo automático con el Worker de base de datos.
@@ -491,23 +487,23 @@ export default function CargaMasiva({ onNavigate }) {
                     Resumen de Importación:
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div style={{ background: '#fff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ background: 'var(--bg-hover)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total leídos</div>
                       <div style={{ fontSize: '16px', fontWeight: 800 }}>{tareaActiva.resultado.totalLeidos || 0}</div>
                     </div>
-                    <div style={{ background: '#fff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ background: 'var(--bg-hover)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: '11px', color: 'var(--accent)' }}>Nuevos insertados</div>
                       <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)' }}>
                         {tareaActiva.resultado.insertados || 0}
                       </div>
                     </div>
-                    <div style={{ background: '#fff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ background: 'var(--bg-hover)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: '11px', color: 'var(--primary)' }}>Actualizados</div>
                       <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)' }}>
                         {tareaActiva.resultado.actualizados || 0}
                       </div>
                     </div>
-                    <div style={{ background: '#fff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ background: 'var(--bg-hover)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: '11px', color: 'var(--danger)' }}>Fallidos / Omitidos</div>
                       <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--danger)' }}>
                         {tareaActiva.resultado.fallidos || 0}
@@ -541,8 +537,8 @@ export default function CargaMasiva({ onNavigate }) {
               Cola asíncrona registrada en la tabla <code>tareas_worker</code>
             </p>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={cargarHistorial}>
-            🔄 Actualizar Historial
+          <button className="btn btn-secondary btn-sm" onClick={cargarHistorial} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <RefreshCwIcon size={13} /> Actualizar Historial
           </button>
         </div>
 
@@ -611,7 +607,7 @@ export default function CargaMasiva({ onNavigate }) {
             <div className="modal-header">
               <h3 className="modal-title">Configurar Plantilla Oficial de la Empresa</h3>
               <button className="btn-icon" onClick={() => setModalPlantillaOpen(false)}>
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -627,7 +623,7 @@ export default function CargaMasiva({ onNavigate }) {
                     borderRadius: 'var(--radius)',
                     padding: '24px',
                     textAlign: 'center',
-                    background: '#f8fafc',
+                    background: 'var(--bg-app)',
                     cursor: 'pointer',
                     marginBottom: '14px',
                   }}
@@ -640,7 +636,9 @@ export default function CargaMasiva({ onNavigate }) {
                     style={{ display: 'none' }}
                     onChange={(e) => setArchivoPlantilla(e.target.files[0] || null)}
                   />
-                  <div style={{ fontSize: '36px', marginBottom: '8px' }}>📑</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                    <FileTextIcon size={38} color="#2563eb" />
+                  </div>
                   <div style={{ fontWeight: 600, fontSize: '13px' }}>
                     {archivoPlantilla ? archivoPlantilla.name : 'Haz clic para seleccionar el archivo .xltx o .xlsx'}
                   </div>
@@ -652,8 +650,8 @@ export default function CargaMasiva({ onNavigate }) {
                 </div>
 
                 {errorPlantilla && (
-                  <div style={{ color: 'var(--danger)', fontSize: '12.5px', marginBottom: '10px' }}>
-                    ⚠️ {errorPlantilla}
+                  <div style={{ color: 'var(--danger)', fontSize: '12.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangleIcon size={14} /> {errorPlantilla}
                   </div>
                 )}
               </div>
@@ -670,8 +668,9 @@ export default function CargaMasiva({ onNavigate }) {
                   type="submit"
                   className="btn btn-primary"
                   disabled={!archivoPlantilla || subiendoPlantilla}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  {subiendoPlantilla ? '⏳ Guardando...' : '📤 Guardar como Plantilla Oficial'}
+                  {subiendoPlantilla ? 'Guardando...' : <><UploadCloudIcon size={14} /> Guardar como Plantilla Oficial</>}
                 </button>
               </div>
             </form>

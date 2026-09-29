@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import HistorialModal from './HistorialModal';
+import { ShieldCheckIcon, AlertTriangleIcon, PackageIcon, ClockIcon, XIcon } from '../components/Icons';
 
 export default function MisEquipos() {
   const { user } = useAuth();
@@ -98,7 +99,7 @@ export default function MisEquipos() {
           gap: '12px',
         }}
       >
-        <span style={{ fontSize: '24px' }}>🛡️</span>
+        <ShieldCheckIcon size={26} color="#0284c7" />
         <div>
           <div style={{ fontWeight: 700, color: 'var(--primary-hover)', fontSize: '13.5px' }}>
             Portal del Empleado · Mínimos Privilegios (RBAC)
@@ -137,8 +138,8 @@ export default function MisEquipos() {
         </div>
 
         {equipos.length > 0 && (
-          <button className="btn btn-warning" onClick={() => handleOpenReportarFallo(null)}>
-            ⚠️ Reportar Falla Técnica
+          <button className="btn btn-warning" onClick={() => handleOpenReportarFallo(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <AlertTriangleIcon size={14} /> Reportar Falla Técnica
           </button>
         )}
       </div>
@@ -147,7 +148,9 @@ export default function MisEquipos() {
         <div style={{ padding: '40px', textAlign: 'center' }}>Consultando equipos asignados...</div>
       ) : equipos.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '36px', marginBottom: '8px' }}>📂</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+            <PackageIcon size={42} color="var(--text-muted)" />
+          </div>
           <h3 style={{ fontSize: '16px', fontWeight: 700 }}>No tienes activos asignados actualmente</h3>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Si requieres un equipo o consideras que falta vincular alguno a tu nombre, contacta al administrador de TI.
@@ -213,17 +216,17 @@ export default function MisEquipos() {
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                 <button
                   className="btn btn-secondary"
-                  style={{ flex: 1, justifyContent: 'center', fontSize: '12px' }}
+                  style={{ flex: 1, justifyContent: 'center', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                   onClick={() => setHistorialEquipo(eq)}
                 >
-                  🕒 Historial
+                  <ClockIcon size={13} /> Historial
                 </button>
                 <button
                   className="btn btn-warning"
-                  style={{ flex: 1, justifyContent: 'center', fontSize: '12px' }}
+                  style={{ flex: 1, justifyContent: 'center', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                   onClick={() => handleOpenReportarFallo(eq)}
                 >
-                  ⚠️ Reportar Falla
+                  <AlertTriangleIcon size={13} /> Reportar Falla
                 </button>
               </div>
             </div>
@@ -243,7 +246,7 @@ export default function MisEquipos() {
             <div className="modal-header">
               <h3 className="modal-title">Reportar Incidencia o Falla Técnica</h3>
               <button className="btn-icon" onClick={() => setModalFalloOpen(false)}>
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -297,8 +300,8 @@ export default function MisEquipos() {
                 <button type="button" className="btn btn-secondary" onClick={() => setModalFalloOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-warning" disabled={enviandoFallo}>
-                  {enviandoFallo ? 'Enviando...' : '⚠️ Registrar Reporte a TI'}
+                <button type="submit" className="btn btn-warning" disabled={enviandoFallo} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {enviandoFallo ? 'Enviando...' : <><AlertTriangleIcon size={14} /> Registrar Reporte a TI</>}
                 </button>
               </div>
             </form>

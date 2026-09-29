@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { UsersIcon, BuildingIcon, MapPinIcon, PlusIcon, RotateCcwIcon, XIcon } from '../components/Icons';
 
 export default function Asignaciones() {
   const [modo, setModo] = useState('colaborador'); // 'colaborador' | 'area' | 'sede'
@@ -205,19 +206,19 @@ export default function Asignaciones() {
           className={`asignaciones-tab-btn ${modo === 'colaborador' ? 'active' : ''}`}
           onClick={() => handleCambiarModo('colaborador')}
         >
-          <span>👤</span> Por Colaborador ({usuarios.length})
+          <UsersIcon size={14} /> Por Colaborador ({usuarios.length})
         </button>
         <button
           className={`asignaciones-tab-btn ${modo === 'area' ? 'active' : ''}`}
           onClick={() => handleCambiarModo('area')}
         >
-          <span>🏢</span> Por Área Operativa ({areas.length})
+          <BuildingIcon size={14} /> Por Área Operativa ({areas.length})
         </button>
         <button
           className={`asignaciones-tab-btn ${modo === 'sede' ? 'active' : ''}`}
           onClick={() => handleCambiarModo('sede')}
         >
-          <span>📍</span> Por Sede Física ({sedes.length})
+          <MapPinIcon size={14} /> Por Sede Física ({sedes.length})
         </button>
       </div>
 
@@ -261,22 +262,13 @@ export default function Asignaciones() {
                 <div
                   key={u.id}
                   onClick={() => seleccionarUsuario(u)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: selectedUser?.id === u.id ? '#eff6ff' : 'transparent',
-                    border: selectedUser?.id === u.id ? '1px solid #bfdbfe' : '1px solid transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                  }}
+                  className={`assignment-item-row ${selectedUser?.id === u.id ? 'selected' : ''}`}
                 >
                   <div className="user-avatar" style={{ width: '30px', height: '30px', fontSize: '11px' }}>
                     {u.nombre_completo.charAt(0)}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="item-name" style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {u.nombre_completo}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -292,21 +284,13 @@ export default function Asignaciones() {
                 <div
                   key={idx}
                   onClick={() => seleccionarArea(a)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: selectedArea?.area === a.area ? '#eff6ff' : 'transparent',
-                    border: selectedArea?.area === a.area ? '1px solid #bfdbfe' : '1px solid transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
+                  className={`assignment-item-row ${selectedArea?.area === a.area ? 'selected' : ''}`}
+                  style={{ justifyContent: 'space-between' }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>
-                    🏢 {a.area}
+                  <div className="item-name" style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <BuildingIcon size={14} /> {a.area}
                   </div>
-                  <span className="nav-badge" style={{ background: '#e2e8f0', color: '#0f172a', fontWeight: 700 }}>
+                  <span className="nav-badge">
                     {a.total_equipos} eq.
                   </span>
                 </div>
@@ -318,21 +302,13 @@ export default function Asignaciones() {
                 <div
                   key={idx}
                   onClick={() => seleccionarSede(s)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: selectedSede?.sede === s.sede ? '#eff6ff' : 'transparent',
-                    border: selectedSede?.sede === s.sede ? '1px solid #bfdbfe' : '1px solid transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
+                  className={`assignment-item-row ${selectedSede?.sede === s.sede ? 'selected' : ''}`}
+                  style={{ justifyContent: 'space-between' }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>
-                    📍 {s.sede}
+                  <div className="item-name" style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPinIcon size={14} /> {s.sede}
                   </div>
-                  <span className="nav-badge" style={{ background: '#dbeafe', color: '#1e40af', fontWeight: 700 }}>
+                  <span className="nav-badge">
                     {s.total_equipos} eq.
                   </span>
                 </div>
@@ -346,7 +322,7 @@ export default function Asignaciones() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div className="user-avatar" style={{ width: '46px', height: '46px', fontSize: '20px' }}>
-                  {modo === 'colaborador' ? (selectedUser ? selectedUser.nombre_completo.charAt(0) : '👤') : modo === 'area' ? '🏢' : '📍'}
+                  {modo === 'colaborador' ? (selectedUser ? selectedUser.nombre_completo.charAt(0) : <UsersIcon size={20} />) : modo === 'area' ? <BuildingIcon size={20} /> : <MapPinIcon size={20} />}
                 </div>
                 <div>
                   <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
@@ -369,11 +345,11 @@ export default function Asignaciones() {
               </div>
 
               <button className="btn-primary-action" onClick={handleOpenModalAsignar}>
-                <span>+</span> Vincular / Asignar Equipo
+                <PlusIcon size={14} /> Vincular / Asignar Equipo
               </button>
             </div>
 
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <h3 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
                   Activos Asignados ({equiposAsignados.length})
@@ -385,7 +361,7 @@ export default function Asignaciones() {
                   Consultando activos en la base de datos...
                 </div>
               ) : equiposAsignados.length === 0 ? (
-                <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <div className="assignment-empty-box">
                   No se encontraron equipos asignados en este registro.
                 </div>
               ) : (
@@ -393,15 +369,12 @@ export default function Asignaciones() {
                   {equiposAsignados.map((eq) => (
                     <div
                       key={eq.id}
+                      className="assigned-hardware-card"
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid var(--border)',
-                        borderRadius: '10px',
                         padding: '14px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        boxShadow: 'var(--shadow-sm)',
                       }}
                     >
                       <div>
@@ -422,7 +395,7 @@ export default function Asignaciones() {
                           <b>S/N:</b> {eq.serial || 'S/N'}
                         </div>
 
-                        <div style={{ marginTop: '8px', fontSize: '11.5px', background: '#f8fafc', padding: '6px 8px', borderRadius: '6px' }}>
+                        <div className="assignment-spec-box">
                           <div><b>Sede:</b> {eq.sede || '—'}</div>
                           <div><b>Área:</b> {eq.area || '—'}</div>
                           {eq.responsable_nombre && (
@@ -431,20 +404,20 @@ export default function Asignaciones() {
                         </div>
 
                         {eq.observaciones && (
-                          <div style={{ fontSize: '11px', color: '#0369a1', marginTop: '6px', background: '#e0f2fe', padding: '4px 6px', borderRadius: '4px' }}>
+                          <div className="assignment-obs-box">
                             {eq.observaciones}
                           </div>
                         )}
                       </div>
 
-                      <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                      <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
                         <button
                           className="btn-icon warn"
                           title="Retirar equipo y devolver a custodia"
                           onClick={() => handleDesasignar(eq)}
                           style={{ width: 'auto', padding: '4px 10px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                         >
-                          <span>↩ Desasignar</span>
+                          <RotateCcwIcon size={13} /> Desasignar
                         </button>
                       </div>
                     </div>
@@ -508,7 +481,9 @@ export default function Asignaciones() {
                 Vincular Equipo a{' '}
                 {modo === 'colaborador' ? selectedUser?.nombre_completo : modo === 'area' ? `Área ${selectedArea?.area}` : `Sede ${selectedSede?.sede}`}
               </h3>
-              <button className="btn-close-modal" onClick={() => setModalAsignarOpen(false)}>×</button>
+              <button className="btn-close-modal" onClick={() => setModalAsignarOpen(false)}>
+                <XIcon size={16} />
+              </button>
             </div>
             <form onSubmit={handleConfirmarAsignacion} className="modal-body-content">
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '14px' }}>

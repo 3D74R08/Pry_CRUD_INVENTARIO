@@ -2,6 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import HistorialModal from './HistorialModal';
 import Pagination from '../components/Pagination';
+import {
+  MonitorIcon,
+  UsersIcon,
+  PackageIcon,
+  ClockIcon,
+  RotateCcwIcon,
+  PrinterIcon,
+  TabletIcon,
+  HeadphonesIcon,
+  ZapIcon,
+  ArchiveIcon,
+  HistoryIcon,
+  SearchIcon,
+  PlusIcon,
+  EyeIcon,
+  ArrowLeftRightIcon,
+  EditIcon,
+  TrashIcon,
+} from '../components/Icons';
 
 export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, onNavigate }) {
   const [equipos, setEquipos] = useState([]);
@@ -63,17 +82,17 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   const [formData, setFormData] = useState(initialForm);
 
   const TABS_CONFIG = [
-    { key: 'todos', label: 'Todos', icon: '💻', countKey: 'todos' },
-    { key: 'equipos_prestamos', label: 'Equipos en Préstamo (Indefinido)', icon: '👥', countKey: 'equipos_prestamos' },
-    { key: 'alquiler', label: 'Alquiler', icon: '📦', countKey: 'alquiler' },
-    { key: 'prestamos', label: 'Préstamos Temporales (Por días)', icon: '⏳', countKey: 'prestamos' },
-    { key: 'devoluciones', label: 'Devoluciones', icon: '↩', countKey: 'devoluciones' },
-    { key: 'impresoras', label: 'Impresoras', icon: '🖨️', countKey: 'impresoras' },
-    { key: 'elementos', label: 'Elementos', icon: '▥', countKey: 'elementos' },
-    { key: 'perifericos', label: 'Periféricos', icon: '🎧', countKey: 'perifericos' },
-    { key: 'ups', label: 'UPS', icon: '⚡', countKey: 'ups' },
-    { key: 'bajas', label: 'Bajas', icon: '⊘', countKey: 'bajas' },
-    { key: 'control_cambios', label: 'Control de Cambios', icon: '🕒', countKey: null },
+    { key: 'todos', label: 'Todos', icon: <MonitorIcon size={16} />, countKey: 'todos' },
+    { key: 'equipos_prestamos', label: 'Equipos en Préstamo (Indefinido)', icon: <UsersIcon size={16} />, countKey: 'equipos_prestamos' },
+    { key: 'alquiler', label: 'Alquiler', icon: <PackageIcon size={16} />, countKey: 'alquiler' },
+    { key: 'prestamos', label: 'Préstamos Temporales (Por días)', icon: <ClockIcon size={16} />, countKey: 'prestamos' },
+    { key: 'devoluciones', label: 'Devoluciones', icon: <RotateCcwIcon size={16} />, countKey: 'devoluciones' },
+    { key: 'impresoras', label: 'Impresoras', icon: <PrinterIcon size={16} />, countKey: 'impresoras' },
+    { key: 'elementos', label: 'Elementos', icon: <TabletIcon size={16} />, countKey: 'elementos' },
+    { key: 'perifericos', label: 'Periféricos', icon: <HeadphonesIcon size={16} />, countKey: 'perifericos' },
+    { key: 'ups', label: 'UPS', icon: <ZapIcon size={16} />, countKey: 'ups' },
+    { key: 'bajas', label: 'Bajas', icon: <ArchiveIcon size={16} />, countKey: 'bajas' },
+    { key: 'control_cambios', label: 'Control de Cambios', icon: <HistoryIcon size={16} />, countKey: null },
   ];
 
   const cargarDatos = async () => {
@@ -334,7 +353,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       {/* Banner Informativo de Módulo: Equipos en Préstamo (Indefinido) vs Préstamos (Temporales) */}
       {moduloActivo === 'equipos_prestamos' && (
         <div className="module-info-banner indefinite">
-          <span className="module-info-icon">👥</span>
+          <span className="module-info-icon"><UsersIcon size={24} color="#059669" /></span>
           <div>
             <div className="module-info-title">
               Equipos en Préstamo — Dotación Indefinida a Colaboradores
@@ -348,7 +367,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
 
       {moduloActivo === 'prestamos' && (
         <div className="module-info-banner temporary">
-          <span className="module-info-icon">⏳</span>
+          <span className="module-info-icon"><ClockIcon size={24} color="#d97706" /></span>
           <div>
             <div className="module-info-title">
               Préstamos Temporales — Salidas por Días con Retorno Obligatorio
@@ -371,7 +390,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
             onChange={(e) => setBusqueda(e.target.value)}
           />
           <button type="submit" className="btn-search">
-            🔍 Buscar
+            <SearchIcon size={14} /> Buscar
           </button>
         </form>
 
@@ -403,7 +422,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
           </select>
 
           <button className="btn-primary-action" onClick={handleOpenNuevo}>
-            <span>+</span> Nuevo Activo
+            <PlusIcon size={14} /> Nuevo Activo
           </button>
         </div>
       </div>
@@ -626,13 +645,13 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                   )}
 
                   <td style={{ textAlign: 'center', width: '130px', minWidth: '130px', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center' }}>
                       <button
                         className="btn-icon"
                         title="Ver Historial y Trazabilidad"
                         onClick={() => setHistorialEquipo(eq)}
                       >
-                        👁️
+                        <EyeIcon size={14} />
                       </button>
 
                       {eq.estado !== 'DE_BAJA' && moduloActivo !== 'bajas' && (
@@ -642,7 +661,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                             title="Prestar equipo"
                             onClick={() => handleOpenPrestamo(eq)}
                           >
-                            ⇄
+                            <ArrowLeftRightIcon size={14} />
                           </button>
                           {eq.responsable_nombre && eq.responsable_nombre !== 'CUSTODIA' && (
                             <button
@@ -650,7 +669,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                               title="Devolver a custodia"
                               onClick={() => handleDevolucionDirecta(eq)}
                             >
-                              ↩
+                              <RotateCcwIcon size={14} />
                             </button>
                           )}
                         </>
@@ -661,7 +680,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                         title="Editar equipo"
                         onClick={() => handleOpenEditar(eq)}
                       >
-                        ✎
+                        <EditIcon size={14} />
                       </button>
 
                       {eq.estado !== 'DE_BAJA' && moduloActivo !== 'bajas' && (
@@ -670,7 +689,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                           title="Dar de baja"
                           onClick={() => handleOpenBaja(eq)}
                         >
-                          ⊘
+                          <ArchiveIcon size={14} />
                         </button>
                       )}
 
@@ -679,7 +698,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                         title="Eliminar equipo"
                         onClick={() => handleDelete(eq)}
                       >
-                        🗑
+                        <TrashIcon size={14} />
                       </button>
                     </div>
                   </td>
@@ -1009,7 +1028,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
             </div>
             <form onSubmit={handleSubmitPrestamo}>
               <div className="form-2col" style={{ gridTemplateColumns: '1fr' }}>
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#92400e', lineHeight: 1.4 }}>
+                <div style={{ background: 'var(--warn-light)', border: '1px solid var(--warn)', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: 'var(--text-main)', lineHeight: 1.4 }}>
                   ⏳ <b>Préstamo Temporal (Por Días):</b> Este equipo se registrará como préstamo temporal por unos días y requerirá retorno a Custodia/Almacén TI. (Las asignaciones indefinidas para puestos de trabajo se gestionan como <i>Equipos en Préstamo</i>).
                 </div>
                 <div className="form-field-group">

@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import {
+  PlusIcon,
+  TagIcon,
+  ArrowLeftRightIcon,
+  RotateCcwIcon,
+  AlertTriangleIcon,
+  ArchiveIcon,
+  EditIcon,
+  RefreshCwIcon,
+  SearchIcon,
+} from '../components/Icons';
 
 export default function ControlDeCambios() {
   const [eventos, setEventos] = useState([]);
@@ -35,19 +46,19 @@ export default function ControlDeCambios() {
   const getTipoEventoBadge = (tipo) => {
     switch (tipo) {
       case 'CREACION':
-        return <span className="badge badge-funcional">🌱 CREACIÓN</span>;
+        return <span className="badge badge-funcional"><PlusIcon size={12} /> CREACIÓN</span>;
       case 'ASIGNACION':
-        return <span className="badge badge-funcional">👤 ASIGNACIÓN</span>;
+        return <span className="badge badge-funcional"><TagIcon size={12} /> ASIGNACIÓN</span>;
       case 'PRESTAMO':
-        return <span className="badge badge-revisar">⇄ PRÉSTAMO</span>;
+        return <span className="badge badge-revisar"><ArrowLeftRightIcon size={12} /> PRÉSTAMO</span>;
       case 'DEVOLUCION':
-        return <span className="badge badge-funcional">↩ DEVOLUCIÓN</span>;
+        return <span className="badge badge-funcional"><RotateCcwIcon size={12} /> DEVOLUCIÓN</span>;
       case 'REPORTE_FALLO':
-        return <span className="badge badge-danado">⚠️ REPORTE FALLO</span>;
+        return <span className="badge badge-danado"><AlertTriangleIcon size={12} /> REPORTE FALLO</span>;
       case 'BAJA':
-        return <span className="badge badge-baja">⊘ DADO DE BAJA</span>;
+        return <span className="badge badge-baja"><ArchiveIcon size={12} /> DADO DE BAJA</span>;
       case 'MODIFICACION':
-        return <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>✏️ MODIFICACIÓN</span>;
+        return <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}><EditIcon size={12} /> MODIFICACIÓN</span>;
       default:
         return <span className="badge">{tipo}</span>;
     }
@@ -75,7 +86,7 @@ export default function ControlDeCambios() {
         </div>
 
         <button className="btn btn-secondary" onClick={cargarEventos}>
-          🔄 Actualizar Auditoría
+          <RefreshCwIcon size={14} /> Actualizar Auditoría
         </button>
       </div>
 
@@ -99,18 +110,18 @@ export default function ControlDeCambios() {
               onChange={(e) => setFiltroTipo(e.target.value)}
             >
               <option value="">Todos los tipos de evento</option>
-              <option value="CREACION">🌱 Creación de Activo</option>
-              <option value="ASIGNACION">👤 Asignación</option>
-              <option value="PRESTAMO">⇄ Préstamo Temporal</option>
-              <option value="DEVOLUCION">↩ Devolución</option>
-              <option value="REPORTE_FALLO">⚠️ Reporte de Fallo</option>
-              <option value="BAJA">⊘ Desincorporación / Baja</option>
-              <option value="MODIFICACION">✏️ Modificación Técnica</option>
+              <option value="CREACION">Creación de Activo</option>
+              <option value="ASIGNACION">Asignación</option>
+              <option value="PRESTAMO">Préstamo Temporal</option>
+              <option value="DEVOLUCION">Devolución</option>
+              <option value="REPORTE_FALLO">Reporte de Fallo</option>
+              <option value="BAJA">Desincorporación / Baja</option>
+              <option value="MODIFICACION">Modificación Técnica</option>
             </select>
           </div>
 
           <button type="submit" className="btn btn-primary">
-            🔍 Filtrar
+            <SearchIcon size={14} /> Filtrar
           </button>
         </form>
       </div>

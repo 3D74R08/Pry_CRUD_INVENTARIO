@@ -4,7 +4,7 @@ Plataforma corporativa centralizada para la gestión, auditoría y trazabilidad 
 
 ---
 
-## 🏛️ Arquitectura de la Solución
+##  Arquitectura de la Solución
 
 El sistema desacopla la carga de trabajo en 4 servicios independientes sobre una red interna aislada:
 
@@ -15,7 +15,7 @@ El sistema desacopla la carga de trabajo en 4 servicios independientes sobre una
 
 ---
 
-## 🚀 Inicio Rápido (Despliegue Local con Docker Compose)
+##  Inicio Rápido (Despliegue Local con Docker Compose)
 
 ### Prerrequisitos
 * [Docker Desktop](https://www.docker.com/) instalado y en ejecución.
@@ -42,7 +42,7 @@ El sistema desacopla la carga de trabajo en 4 servicios independientes sobre una
 
 ---
 
-## 🖥️ Despliegue en Servidor Local / Proxmox VE (LAN / WiFi Privada)
+##  Despliegue en Servidor Local / Proxmox VE (LAN / WiFi Privada)
 
 La plataforma está lista para correr en tu servidor **Proxmox VE** (en una Máquina Virtual Ubuntu/Debian o un Contenedor LXC con Docker), permitiendo el acceso de todos tus colaboradores desde computadores y teléfonos celulares conectados a la red WiFi o cableada de tu empresa, **sin necesidad de exponer ningún puerto ni equipo a internet**.
 
@@ -75,7 +75,7 @@ La plataforma está lista para correr en tu servidor **Proxmox VE** (en una Máq
 
 ---
 
-## 👥 Credenciales de Prueba Preconfiguradas (Datos Semilla)
+##  Credenciales de Prueba Preconfiguradas (Datos Semilla)
 
 Al iniciar por primera vez, PostgreSQL ejecuta automáticamente los scripts `01-schema.sql` y `02-seed.sql` creando los siguientes usuarios de demostración:
 
@@ -87,7 +87,7 @@ Al iniciar por primera vez, PostgreSQL ejecuta automáticamente los scripts `01-
 
 ---
 
-## 📋 Modelo de Datos Centralizado
+##  Modelo de Datos Centralizado
 
 El sistema implementa 4 entidades principales relacionales con integridad referencial e índices:
 
@@ -98,20 +98,20 @@ El sistema implementa 4 entidades principales relacionales con integridad refere
 
 ---
 
-## 🛡️ Estrategia DevSecOps y Seguridad
+##  Estrategia DevSecOps y Seguridad
 
 El repositorio integra un pipeline de integración continua en `.github/workflows/devsecops.yml` que ejecuta:
 
-* 🔍 **Secret Scanning (Gitleaks):** Previene la publicación involuntaria de secretos y tokens.
-* 🔎 **SAST (Semgrep):** Análisis estático del código fuente en busca de patrones vulnerables (OWASP Top 10).
-* 📦 **SCA & Containers (Trivy):** Auditoría de dependencias `npm` y escaneo de vulnerabilidades en las imágenes Docker.
-* 🏗️ **IaC Security (Checkov):** Auditoría de seguridad sobre `docker-compose.yml` y los `Dockerfile`.
-* ⚡ **DAST (OWASP ZAP):** Escaneo dinámico automatizado contra los endpoints de la API.
-* 📑 **Modelado de Amenazas:** Matriz formal **STRIDE** y diagramas **DFD** documentados en [`docs/threat-model-stride.md`](./docs/threat-model-stride.md).
+*  **Secret Scanning (Gitleaks):** Previene la publicación involuntaria de secretos y tokens.
+*  **SAST (Semgrep):** Análisis estático del código fuente en busca de patrones vulnerables (OWASP Top 10).
+*  **SCA & Containers (Trivy):** Auditoría de dependencias `npm` y escaneo de vulnerabilidades en las imágenes Docker.
+*  **IaC Security (Checkov):** Auditoría de seguridad sobre `docker-compose.yml` y los `Dockerfile`.
+*  **DAST (OWASP ZAP):** Escaneo dinámico automatizado contra los endpoints de la API.
+*  **Modelado de Amenazas:** Matriz formal **STRIDE** y diagramas **DFD** documentados en [`docs/threat-model-stride.md`](./docs/threat-model-stride.md).
 
 ---
 
-## 🧪 Verificación y Pruebas
+##  Verificación y Pruebas
 
 Para validar el funcionamiento del Worker de forma aislada:
 ```bash

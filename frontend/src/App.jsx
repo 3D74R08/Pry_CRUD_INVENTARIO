@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Sidebar from './components/Sidebar';
@@ -11,12 +11,25 @@ import CargaMasiva from './pages/CargaMasiva';
 import TareasWorker from './pages/TareasWorker';
 import Reportes from './pages/Reportes';
 import UsuariosList from './pages/UsuariosList';
+import { SunIcon, MoonIcon, MenuIcon } from './components/Icons';
 
 export default function App() {
   const { user, token, canManageInventory, canManageUsers, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [moduloActivo, setModuloActivo] = useState('todos');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('vaultti_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('vaultti_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   if (loading) {
     return (
@@ -110,7 +123,7 @@ export default function App() {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label="Abrir Menú de Navegación"
             >
-              ☰
+              <MenuIcon size={20} strokeWidth={2.2} />
             </button>
             <div style={{ minWidth: 0 }}>
               <h1 className="topbar-title">{title}</h1>
@@ -118,12 +131,44 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-user-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-            <span className="topbar-user-name" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Sesión: <b>{user.nombre_completo}</b>
-            </span>
-            <span className={`user-role-badge ${(user.rol || 'EMPLEADO').toLowerCase()}`}>
-              {user.rol}
-            </span>
+            <button
+              type="button"
+              className={`topbar-theme-toggle ${theme}`}
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              aria-label="Alternar modo oscuro o claro"
+            >
+              <div className="theme-switch-pill">
+                <div className={`theme-switch-slider ${theme}`}>
+                  {theme === 'dark' ? (
+                    <span className="theme-icon moon-active" key="moon">
+                      <MoonIcon size={14} color="#38bdf8" />
+                    </span>
+                  ) : (
+                    <span className="theme-icon sun-active" key="sun">
+                      <SunIcon size={14} color="#f59e0b" />
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="theme-toggle-label">{theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+            </button>
+
+            <div className="topbar-security-pill">
+              <span className="topbar-security-dot"></span>
+              <span>Red Segura</span>
+            </div>
+            <div className="topbar-user-pill">
+              <div className="topbar-avatar">
+                {(user.nombre_completo || user.email || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span className="topbar-user-name">
+                {user.nombre_completo}
+              </span>
+              <span className={`user-role-badge ${(user.rol || 'EMPLEADO').toLowerCase()}`}>
+                {user.rol}
+              </span>
+            </div>
           </div>
         </header>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { DownloadIcon, LaptopIcon, BuildingIcon, ActivityIcon } from '../components/Icons';
 
 export default function Reportes() {
   const [tabActivo, setTabActivo] = useState('inventario');
@@ -95,8 +96,8 @@ export default function Reportes() {
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={handleExportarCSV}>
-          📥 Exportar Inventario Completo (CSV)
+        <button className="btn btn-primary" onClick={handleExportarCSV} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <DownloadIcon size={14} /> Exportar Inventario Completo (CSV)
         </button>
       </div>
 
@@ -106,19 +107,19 @@ export default function Reportes() {
           className={`tab-btn ${tabActivo === 'inventario' ? 'active' : ''}`}
           onClick={() => setTabActivo('inventario')}
         >
-          💻 Inventario por Tipos
+          <LaptopIcon size={14} /> Inventario por Tipos
         </button>
         <button
           className={`tab-btn ${tabActivo === 'sedes' ? 'active' : ''}`}
           onClick={() => setTabActivo('sedes')}
         >
-          🏢 Distribución por Sede
+          <BuildingIcon size={14} /> Distribución por Sede
         </button>
         <button
           className={`tab-btn ${tabActivo === 'estados' ? 'active' : ''}`}
           onClick={() => setTabActivo('estados')}
         >
-          ⚙️ Salud y Estados
+          <ActivityIcon size={14} /> Salud y Estados
         </button>
       </div>
 
@@ -166,22 +167,22 @@ export default function Reportes() {
                   Resumen Ejecutivo
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed var(--border)' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Total Activos Registrados:</span>
                     <b style={{ fontSize: '16px' }}>{metricas?.resumen.totalEquipos || 0}</b>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed var(--border)' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Usuarios Activos en Sistema:</span>
                     <b style={{ fontSize: '16px', color: 'var(--accent)' }}>{metricas?.resumen.usuariosActivos || 0}</b>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed var(--border)' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Cargas Masivas Procesadas:</span>
                     <b style={{ fontSize: '16px', color: 'var(--primary)' }}>{metricas?.resumen.tareasCompletadas || 0}</b>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '20px', background: '#f8fafc', padding: '14px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>Auditoría DevSecOps:</div>
+                <div className="devsecops-audit-box">
+                  <div className="audit-title">Auditoría DevSecOps:</div>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     Todos los movimientos físicos y lógicos de los activos generan firmas inmutables en la tabla de auditoría, garantizando trazabilidad ante revisiones contables y de seguridad.
                   </p>

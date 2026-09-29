@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../components/Pagination';
+import { PlusIcon, EditIcon, TrashIcon, XIcon, CheckIcon, AlertTriangleIcon } from '../components/Icons';
 
 export default function UsuariosList() {
   const { user: currentUser } = useAuth();
@@ -145,8 +146,8 @@ export default function UsuariosList() {
             Administración centralizada de cuentas ({usuarios.length} usuarios registrados), roles de seguridad y control de acceso
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          + Nuevo Usuario
+        <button className="btn btn-primary" onClick={() => setModalOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <PlusIcon size={14} /> Nuevo Usuario
         </button>
       </div>
 
@@ -155,7 +156,7 @@ export default function UsuariosList() {
           <input
             type="text"
             className="form-control"
-            placeholder="🔍 Buscar usuario por nombre, cédula o correo..."
+            placeholder="Buscar usuario por nombre, cédula o correo..."
             value={busqueda}
             onChange={(e) => {
               setBusqueda(e.target.value);
@@ -228,8 +229,9 @@ export default function UsuariosList() {
                           className="btn btn-secondary btn-sm"
                           title="Editar usuario"
                           onClick={() => handleOpenEditar(u)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                         >
-                          ✏️ Editar
+                          <EditIcon size={13} /> Editar
                         </button>
                         {!isSelf && (
                           <>
@@ -238,16 +240,26 @@ export default function UsuariosList() {
                               className={`btn btn-sm ${u.activo ? 'btn-secondary' : 'btn-primary'}`}
                               title={u.activo ? 'Deshabilitar acceso' : 'Habilitar acceso'}
                               onClick={() => handleToggleActivo(u)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                             >
-                              {u.activo ? '🚫 Deshabilitar' : '✅ Habilitar'}
+                              {u.activo ? (
+                                <>
+                                  <AlertTriangleIcon size={13} /> Deshabilitar
+                                </>
+                              ) : (
+                                <>
+                                  <CheckIcon size={13} /> Habilitar
+                                </>
+                              )}
                             </button>
                             <button
                               type="button"
                               className="btn btn-danger btn-sm"
                               title="Eliminar usuario definitivamente"
                               onClick={() => handleDelete(u)}
+                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px' }}
                             >
-                              🗑️
+                              <TrashIcon size={13} />
                             </button>
                           </>
                         )}
@@ -278,7 +290,7 @@ export default function UsuariosList() {
             <div className="modal-header">
               <h3 className="modal-title">Registrar Nuevo Usuario</h3>
               <button className="btn-icon" onClick={() => setModalOpen(false)}>
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -390,7 +402,7 @@ export default function UsuariosList() {
             <div className="modal-header">
               <h3 className="modal-title">Editar Usuario: {formEdit.nombre_completo}</h3>
               <button className="btn-icon" onClick={() => setModalEditarOpen(false)}>
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 

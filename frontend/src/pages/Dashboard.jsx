@@ -1,6 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import {
+  LaptopIcon,
+  UsersIcon,
+  ClockIcon,
+  CheckIcon,
+  PlusIcon,
+  TagIcon,
+  ArrowLeftRightIcon,
+  RotateCcwIcon,
+  AlertTriangleIcon,
+  UploadCloudIcon,
+  ArchiveIcon,
+} from '../components/Icons';
 
 export default function Dashboard({ onNavigate }) {
   const { user, isAdmin, canManageInventory } = useAuth();
@@ -58,14 +71,14 @@ export default function Dashboard({ onNavigate }) {
 
   const getEventIcon = (tipo) => {
     switch (tipo) {
-      case 'CREACION': return '+';
-      case 'ASIGNACION': return '🏷️';
-      case 'PRESTAMO': return '⇄';
-      case 'DEVOLUCION': return '↩';
-      case 'REPORTE_FALLO': return '⚠️';
-      case 'CARGA_MASIVA': return '📥';
-      case 'DE_BAJA': return '⊘';
-      default: return '•';
+      case 'CREACION': return <PlusIcon size={14} />;
+      case 'ASIGNACION': return <TagIcon size={14} />;
+      case 'PRESTAMO': return <ArrowLeftRightIcon size={14} />;
+      case 'DEVOLUCION': return <RotateCcwIcon size={14} />;
+      case 'REPORTE_FALLO': return <AlertTriangleIcon size={14} />;
+      case 'CARGA_MASIVA': return <UploadCloudIcon size={14} />;
+      case 'DE_BAJA': return <ArchiveIcon size={14} />;
+      default: return <TagIcon size={14} />;
     }
   };
 
@@ -104,7 +117,7 @@ export default function Dashboard({ onNavigate }) {
             <div className="kpi-label">Total de Equipos</div>
             <div className="kpi-value">{resumen.totalEquipos}</div>
           </div>
-          <div className="kpi-icon-wrap blue">💻</div>
+          <div className="kpi-icon-wrap blue"><LaptopIcon size={24} /></div>
         </div>
 
         <div className="kpi-card" onClick={() => onNavigate && onNavigate('usuarios')} style={{ cursor: 'pointer' }}>
@@ -112,7 +125,7 @@ export default function Dashboard({ onNavigate }) {
             <div className="kpi-label">Usuarios Activos</div>
             <div className="kpi-value">{resumen.usuariosActivos}</div>
           </div>
-          <div className="kpi-icon-wrap green">👥</div>
+          <div className="kpi-icon-wrap green"><UsersIcon size={24} /></div>
         </div>
 
         <div className="kpi-card" onClick={() => onNavigate && onNavigate('tareas')} style={{ cursor: 'pointer' }}>
@@ -120,7 +133,7 @@ export default function Dashboard({ onNavigate }) {
             <div className="kpi-label">Tareas en Proceso</div>
             <div className="kpi-value">{resumen.tareasEnProceso}</div>
           </div>
-          <div className="kpi-icon-wrap amber">⏱️</div>
+          <div className="kpi-icon-wrap amber"><ClockIcon size={24} /></div>
         </div>
 
         <div className="kpi-card" onClick={() => onNavigate && onNavigate('tareas')} style={{ cursor: 'pointer' }}>
@@ -128,7 +141,7 @@ export default function Dashboard({ onNavigate }) {
             <div className="kpi-label">Tareas Completadas</div>
             <div className="kpi-value">{resumen.tareasCompletadas}</div>
           </div>
-          <div className="kpi-icon-wrap purple">✓</div>
+          <div className="kpi-icon-wrap purple"><CheckIcon size={24} /></div>
         </div>
       </div>
 
