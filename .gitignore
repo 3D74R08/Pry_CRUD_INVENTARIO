@@ -30,4 +30,4 @@ backend/templates/plantilla_metadata.json
 .idea/
 *.log
 *.tmp
-thumbs.db
+thumbs.dbnginx/ssl/*.key
