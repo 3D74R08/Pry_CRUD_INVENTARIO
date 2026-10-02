@@ -102,8 +102,8 @@ services:
       dockerfile: Dockerfile
     container_name: inventario-frontend
     restart: unless-stopped
-    ports:
-      - "3000:80" # Único punto de entrada
+    expose:
+      - "80"
     networks:
       - inventario-net
     depends_on:
