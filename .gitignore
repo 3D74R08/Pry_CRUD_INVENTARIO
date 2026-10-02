@@ -29,5 +29,10 @@ backend/templates/plantilla_metadata.json
 .vscode/
 .idea/
 *.log
-*.tmp
-thumbs.dbnginx/ssl/*.key
+thumbs.db
+
+# Certificados y llaves criptográficas TLS / SSL (Seguridad)
+nginx/ssl/
+*.key
+*.crt
+*.pem
