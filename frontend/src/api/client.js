@@ -59,6 +59,7 @@ export const api = {
     if (params.cedula_responsable) query.append('cedula_responsable', params.cedula_responsable);
     if (params.responsable_nombre) query.append('responsable_nombre', params.responsable_nombre);
     if (params.usuario_asignado_id) query.append('usuario_asignado_id', params.usuario_asignado_id);
+    if (params.ordenPlaca) query.append('ordenPlaca', params.ordenPlaca);
     const qs = query.toString();
     return request(`/equipos${qs ? `?${qs}` : ''}`);
   },
@@ -99,6 +100,33 @@ export const api = {
     request(`/equipos/${id}`, {
       method: 'DELETE',
     }),
+  descargarHojaDeVida: async (equipoId, placa) => {
+    const token = localStorage.getItem('activos_ti_token');
+    const response = await fetch(`/api/equipos/${equipoId}/hoja-de-vida`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Error al descargar la Hoja de Vida');
+    }
+
+    let filename = `${placa || 'Equipo'}_Hoja_de_Vida.xlsx`;
+    const disposition = response.headers.get('content-disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
 
   // Eventos de Trazabilidad y Dashboard
   getEventos: (params = {}) => {

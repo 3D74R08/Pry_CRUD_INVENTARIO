@@ -162,11 +162,45 @@ async function getMetricasDashboard(req, res) {
 
     // 4. Equipos por sede
     const porSedeRes = await db.query(
-      `SELECT COALESCE(sede, 'Principal') as sede, count(*) as cantidad 
+      `SELECT COALESCE(NULLIF(TRIM(sede), ''), 'Principal') as sede, count(*) as cantidad 
        FROM equipos ${whereClause} 
        GROUP BY sede 
        ORDER BY cantidad DESC 
        LIMIT 8`,
+      params
+    );
+
+    // 5. Disponibilidad operativa
+    const andClause = whereClause ? ' AND (cedula_responsable = $1 OR usuario_asignado_id = $2)' : '';
+    const disponibilidadRes = await db.query(
+      `SELECT 
+        COUNT(CASE WHEN estado = 'DE_BAJA' THEN 1 END) as de_baja,
+        COUNT(CASE WHEN estado != 'DE_BAJA' AND (categoria = 'PRESTAMOS' OR modalidad = 'PRESTAMO_TEMPORAL') THEN 1 END) as prestamo_temporal,
+        COUNT(CASE WHEN estado != 'DE_BAJA' AND (categoria != 'PRESTAMOS' AND modalidad != 'PRESTAMO_TEMPORAL') AND (area = 'CUSTODIA' OR responsable_nombre = 'CUSTODIA' OR responsable_nombre = 'En Almacén' OR responsable_nombre IS NULL OR TRIM(responsable_nombre) = '') THEN 1 END) as en_custodia,
+        COUNT(CASE WHEN estado != 'DE_BAJA' AND (categoria != 'PRESTAMOS' AND modalidad != 'PRESTAMO_TEMPORAL') AND (responsable_nombre IS NOT NULL AND TRIM(responsable_nombre) != '' AND responsable_nombre != 'CUSTODIA' AND responsable_nombre != 'En Almacén') THEN 1 END) as asignados
+       FROM equipos WHERE 1=1 ${andClause}`,
+      params
+    );
+
+    // 6. Equipos por marca (Top marcas)
+    const porMarcaRes = await db.query(
+      `SELECT COALESCE(NULLIF(TRIM(marca), ''), 'Otras') as marca, count(*) as cantidad 
+       FROM equipos 
+       WHERE estado != 'DE_BAJA' AND marca IS NOT NULL AND TRIM(marca) != '' ${andClause}
+       GROUP BY marca 
+       ORDER BY cantidad DESC 
+       LIMIT 6`,
+      params
+    );
+
+    // 7. Equipos por Sistema Operativo
+    const porSoRes = await db.query(
+      `SELECT COALESCE(NULLIF(TRIM(sistema_operativo), ''), 'Sin SO') as so, count(*) as cantidad 
+       FROM equipos 
+       WHERE estado != 'DE_BAJA' AND sistema_operativo IS NOT NULL AND TRIM(sistema_operativo) != '' ${andClause}
+       GROUP BY sistema_operativo 
+       ORDER BY cantidad DESC 
+       LIMIT 5`,
       params
     );
 
@@ -177,9 +211,17 @@ async function getMetricasDashboard(req, res) {
         tareasEnProceso: parseInt(tareasEnProcesoRes.rows[0].total, 10),
         tareasCompletadas: parseInt(tareasCompletadasRes.rows[0].total, 10),
       },
+      disponibilidad: {
+        asignados: parseInt(disponibilidadRes.rows[0]?.asignados || 0, 10),
+        enCustodia: parseInt(disponibilidadRes.rows[0]?.en_custodia || 0, 10),
+        prestamoTemporal: parseInt(disponibilidadRes.rows[0]?.prestamo_temporal || 0, 10),
+        deBaja: parseInt(disponibilidadRes.rows[0]?.de_baja || 0, 10),
+      },
       porTipo: porTipoRes.rows.map(r => ({ tipo: r.tipo, cantidad: parseInt(r.cantidad, 10) })),
       porEstado: porEstadoRes.rows.map(r => ({ estado: r.estado, cantidad: parseInt(r.cantidad, 10) })),
       porSede: porSedeRes.rows.map(r => ({ sede: r.sede, cantidad: parseInt(r.cantidad, 10) })),
+      porMarca: porMarcaRes.rows.map(r => ({ marca: r.marca, cantidad: parseInt(r.cantidad, 10) })),
+      porSO: porSoRes.rows.map(r => ({ so: r.so, cantidad: parseInt(r.cantidad, 10) })),
     });
   } catch (error) {
     console.error('[Eventos] Error al consultar métricas de dashboard:', error);

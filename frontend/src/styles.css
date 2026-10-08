@@ -28,6 +28,9 @@
   --shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 14px 30px -4px rgba(15, 23, 42, 0.10), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
   --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.18);
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -447,15 +450,16 @@ body {
    ============================================================ */
 .module-tabs-wrapper {
   background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 12px;
   margin-bottom: 22px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   overflow-x: auto;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  scrollbar-width: thin;
 }
 
 .module-tab-btn {
@@ -698,6 +702,267 @@ body {
 }
 
 /* ============================================================
+   Dashboard 3-Column Diagnostic Grid & Status Metrics
+   ============================================================ */
+.dashboard-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-grid-3col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Multi-segment health bar (Salud del Parque) */
+.health-bar-multi {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e2e8f0;
+  margin-bottom: 16px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.health-bar-segment {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.health-bar-segment.funcional { background: #10b981; }
+.health-bar-segment.revisar { background: #f59e0b; }
+.health-bar-segment.danado { background: #ef4444; }
+.health-bar-segment.baja { background: #94a3b8; }
+
+/* Status pills grid */
+.status-pills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.status-pill-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  transition: all 0.18s ease;
+}
+
+.status-pill-card:hover {
+  transform: translateY(-1px);
+  border-color: #cbd5e1;
+}
+
+.status-pill-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-pill-card.funcional .status-pill-dot { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+.status-pill-card.revisar .status-pill-dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+.status-pill-card.danado .status-pill-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+.status-pill-card.baja .status-pill-dot { background: #94a3b8; box-shadow: 0 0 6px rgba(148, 163, 184, 0.4); }
+
+.status-pill-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.status-pill-val {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.status-pill-pct {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Sede Bar List */
+.sede-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sede-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sede-bar-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.sede-name {
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.sede-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  flex-shrink: 0;
+}
+
+.sede-bar-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sede-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb 0%, #06b6d4 100%);
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ecosistema Hardware / Software Tabs */
+.tab-pills-bar {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 3px;
+  border: 1px solid var(--border);
+}
+
+.tab-pill-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.16s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tab-pill-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.tab-pill-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.ecosystem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ecosystem-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ecosystem-row-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.ecosystem-name {
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.ecosystem-stat {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+
+.ecosystem-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ecosystem-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.ecosystem-fill.marca {
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.ecosystem-fill.tipo {
+  background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%);
+}
+
+.ecosystem-fill.so {
+  background: linear-gradient(90deg, #10b981 0%, #14b8a6 100%);
+}
+
+/* ============================================================
    Activity Timeline Feed
    ============================================================ */
 .activity-list {
@@ -851,10 +1116,17 @@ body {
 }
 
 .select-filter {
-  padding: 8px 14px;
+  padding: 8px 36px 8px 14px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #ffffff;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-main);
@@ -1305,6 +1577,14 @@ body {
   position: relative;
 }
 
+.modal-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 @keyframes modalScale {
   from { opacity: 0; transform: scale(0.95) translateY(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
@@ -1312,12 +1592,30 @@ body {
 
 .modal-title-bar,
 .modal-header {
-  padding: 18px 24px;
+  padding: 20px 28px;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #ffffff;
+}
+
+.modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-header-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .modal-title-bar h3,
@@ -1329,20 +1627,27 @@ body {
   margin: 0;
 }
 
+.modal-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 3px 0 0 0;
+  font-weight: 400;
+}
+
 .btn-close-modal {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   color: var(--text-muted);
   line-height: 1;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-close-modal:hover {
@@ -1354,14 +1659,33 @@ body {
 
 .modal-body-content,
 .modal-body {
-  padding: 24px;
+  padding: 24px 28px;
   overflow-y: auto;
   flex: 1;
+  max-height: 74vh;
+  box-sizing: border-box;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
 }
 
 .modal-actions-bar,
 .modal-footer {
-  padding: 16px 24px;
+  padding: 16px 28px;
   border-top: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
@@ -1370,16 +1694,121 @@ body {
   background: #f8fafc;
 }
 
+.btn-modal-cancel {
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-modal-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-modal-submit {
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.4);
+  transition: all 0.18s ease;
+}
+
+.btn-modal-submit:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px -2px rgba(37, 99, 235, 0.6);
+  transform: translateY(-1px);
+}
+
 .form-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 16px 20px;
+}
+
+.form-section-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-top: 14px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0284c7;
+}
+
+.form-section-header:first-of-type {
+  margin-top: 0;
+}
+
+.select-custom-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+}
+
+.select-custom-toggle-btn:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+
+.select-custom-toggle-btn.active {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.btn-custom-return {
+  height: 42px;
+  width: 42px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-custom-return:hover {
+  background: #e0f2fe;
+  border-color: #0284c7;
 }
 
 .form-field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .form-field-group.full-width {
@@ -1387,7 +1816,7 @@ body {
 }
 
 .form-field-group label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -1395,16 +1824,41 @@ body {
 }
 
 .form-field-group input,
-.form-field-group select,
-.form-field-group textarea {
-  padding: 9px 13px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
+.form-field-group select {
+  height: 42px;
+  padding: 0 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
   font-size: 13.5px;
   color: var(--text-main);
   background: #ffffff;
-  transition: all 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.form-field-group textarea {
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: var(--text-main);
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.form-field-group select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
 }
 
 .form-field-group input:focus,
@@ -1412,8 +1866,9 @@ body {
 .form-field-group textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(37, 99, 235, 0.06);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), 0 2px 6px rgba(37, 99, 235, 0.08);
 }
+
 
 /* ============================================================
    Login 2-Column Split (Panel 1 - Modern Redesign)
@@ -2509,6 +2964,18 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
+select.form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
 .form-control:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(37, 99, 235, 0.06);
@@ -3470,6 +3937,9 @@ body[data-theme="dark"] {
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.45), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 14px 30px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.35);
+  --scrollbar-track: #152232;
+  --scrollbar-thumb: #0b525b;
+  --scrollbar-thumb-hover: #38bdf8;
 }
 
 [data-theme="dark"] body {
@@ -3570,6 +4040,56 @@ body[data-theme="dark"] {
   color: #f8fafc;
 }
 
+/* Dark Mode: Dashboard Diagnostics & Metrics */
+[data-theme="dark"] .status-pill-card {
+  background: #14202e;
+  border-color: #1e3a5f;
+}
+
+[data-theme="dark"] .status-pill-card:hover {
+  border-color: #2e5984;
+}
+
+[data-theme="dark"] .status-pill-name,
+[data-theme="dark"] .status-pill-val,
+[data-theme="dark"] .sede-name,
+[data-theme="dark"] .ecosystem-name,
+[data-theme="dark"] .ecosystem-stat {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .health-bar-multi,
+[data-theme="dark"] .sede-bar-track,
+[data-theme="dark"] .ecosystem-track {
+  background: #0d1520;
+}
+
+[data-theme="dark"] .sede-badge {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+[data-theme="dark"] .tab-pills-bar {
+  background: #14202e;
+  border-color: #1e3a5f;
+}
+
+[data-theme="dark"] .tab-pill-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .tab-pill-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .tab-pill-btn.active {
+  background: #212f45;
+  color: #60a5fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
 /* ============================================================
    Dark Mode: Tabs por Categoría e Inventario
    ============================================================ */
@@ -3610,7 +4130,8 @@ body[data-theme="dark"] {
 
 [data-theme="dark"] .module-tabs-wrapper {
   background: #1b3a4b;
-  border-color: #144552;
+  border: 1.5px solid #235368;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="dark"] .module-tab-btn {
@@ -3799,44 +4320,78 @@ body[data-theme="dark"] {
   border-color: #006466;
 }
 
-[data-theme="dark"] .select-filter {
-  background: #1b3a4b;
-  border: 1px solid #144552;
-  color: #f8fafc;
-}
-
-[data-theme="dark"] .select-filter:focus {
-  border-color: #006466;
-  box-shadow: 0 0 0 3px rgba(0, 100, 102, 0.3);
-}
-
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .form-field-group input,
-[data-theme="dark"] .form-field-group select,
 [data-theme="dark"] .form-field-group textarea,
 [data-theme="dark"] .search-input-wrap input,
-[data-theme="dark"] .filters-row input,
-[data-theme="dark"] .filters-row select {
-  background: #1b3a4b;
-  border-color: #144552;
+[data-theme="dark"] .filters-row input {
+  background-color: #14202e;
+  border: 1px solid #233b4d;
   color: #f8fafc;
+  border-radius: 10px;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] select.form-control,
+[data-theme="dark"] .form-field-group select,
+[data-theme="dark"] .filters-row select,
+[data-theme="dark"] .select-filter {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #14202e !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px 16px !important;
+  padding-right: 38px !important;
+  border: 1px solid #233b4d !important;
+  color: #f8fafc !important;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .pagination-pagesize-select {
+  background-image: none !important;
+}
+
+[data-theme="dark"] select option {
+  background-color: #14202e;
+  color: #f8fafc;
+  padding: 10px 14px;
 }
 
 [data-theme="dark"] .form-control:focus,
 [data-theme="dark"] .form-field-group input:focus,
-[data-theme="dark"] .form-field-group select:focus,
 [data-theme="dark"] .form-field-group textarea:focus,
-[data-theme="dark"] .search-input-wrap input:focus {
-  border-color: #006466;
-  box-shadow: 0 0 0 3px rgba(0, 100, 102, 0.3);
-  background: #1b3a4b;
+[data-theme="dark"] .search-input-wrap input:focus,
+[data-theme="dark"] .filters-row input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+  background-color: #14202e;
+  outline: none;
+}
+
+[data-theme="dark"] select:focus,
+[data-theme="dark"] select.form-control:focus,
+[data-theme="dark"] .form-field-group select:focus,
+[data-theme="dark"] .filters-row select:focus,
+[data-theme="dark"] .select-filter:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22) !important;
+  background-color: #14202e !important;
+  outline: none !important;
 }
 
 [data-theme="dark"] .form-control::placeholder,
 [data-theme="dark"] .form-field-group input::placeholder,
 [data-theme="dark"] .form-field-group textarea::placeholder,
 [data-theme="dark"] .search-input-wrap input::placeholder {
-  color: #64748b;
+  color: rgba(148, 163, 184, 0.6);
+}
+
+[data-theme="dark"] .form-field-group label {
+  color: #cbd5e1;
 }
 
 /* ============================================================
@@ -3903,28 +4458,114 @@ body[data-theme="dark"] {
 /* ============================================================
    Dark Mode: Modales y Ventanas Emergentes
    ============================================================ */
+[data-theme="dark"] .modal-backdrop {
+  background: rgba(8, 14, 26, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 [data-theme="dark"] .modal-window,
 [data-theme="dark"] .modal-content {
-  background: #212f45;
-  border: 1px solid #144552;
-  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(20, 69, 82, 0.4);
+  background: linear-gradient(180deg, #1b2838 0%, #152232 100%);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(56, 189, 248, 0.08);
 }
 
 [data-theme="dark"] .modal-title-bar,
 [data-theme="dark"] .modal-header {
-  background: #212f45;
-  border-bottom: 1px solid #144552;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .modal-header-badge {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+[data-theme="dark"] .modal-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .modal-subtitle {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .form-section-header {
+  color: #38bdf8;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+[data-theme="dark"] .select-custom-toggle-btn {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+[data-theme="dark"] .select-custom-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+[data-theme="dark"] .select-custom-toggle-btn.active {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border-color: rgba(20, 184, 166, 0.35);
+}
+
+[data-theme="dark"] .btn-custom-return {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #233b4d;
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .btn-custom-return:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #ffffff;
+  border-color: #38bdf8;
 }
 
 [data-theme="dark"] .modal-actions-bar,
 [data-theme="dark"] .modal-footer {
-  background: #1b3a4b;
-  border-top: 1px solid #144552;
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .btn-modal-cancel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .btn-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="dark"] .btn-modal-submit {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+}
+
+[data-theme="dark"] .btn-modal-submit:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.6);
+}
+
+[data-theme="dark"] .modal-body::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+[data-theme="dark"] .modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.4);
 }
 
 [data-theme="dark"] .btn-close-modal {
-  background: #1b3a4b;
-  border-color: #144552;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
 }
 
@@ -4033,16 +4674,76 @@ body[data-theme="dark"] {
   color: #cbd5e1;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-track {
-  background: #272640;
+/* ============================================================
+   Universal Custom Scrollbar System (Modern & Responsive)
+   ============================================================ */
+
+/* Standard W3C for Firefox & Modern Browsers */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #144552;
-  border-radius: 4px;
+/* WebKit / Chromium (Chrome, Edge, Brave, Opera, Safari) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #0b525b;
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 8px;
+  border: 2px solid var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Completely remove Windows default arrow buttons (< and >) */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Special treatment for tables to seamlessly blend with rounded containers */
+.custom-table-wrap,
+.table-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.custom-table-wrap::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-table-wrap::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.custom-table-wrap::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 8px;
+  border: 2px solid var(--scrollbar-track);
+}
+
+.custom-table-wrap::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
 }
 

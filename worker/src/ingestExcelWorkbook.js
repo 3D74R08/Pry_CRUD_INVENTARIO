@@ -1,7 +1,13 @@
-const { pool } = require('./db');
+let pool;
+try {
+  const dbModule = require('./db');
+  pool = dbModule.pool || dbModule;
+} catch (e) {
+  const dbModule = require('./config/db');
+  pool = dbModule.pool || dbModule;
+}
 const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
-const path = require('path');
 
 function parseExcelDate(excelVal) {
   if (!excelVal) return null;
@@ -61,13 +67,13 @@ function cleanString(val) {
 function normalizarEstado(est, defaultEst = 'FUNCIONAL') {
   if (!est) return defaultEst;
   const s = String(est).trim().toUpperCase();
-  if (s.includes('BAJA') || s.includes('DAÑADO') || s.includes('DANADO') || s.includes('DEFECTUOSO')) {
+  if (s.includes('BAJA') || s.includes('DAÑADO') || s.includes('DANADO') || s.includes('DEFECTUOSO') || s.includes('DAÑADA')) {
     return 'DAÑADO';
   }
   if (s.includes('REVIS') || s.includes('USADA') || s.includes('MANTENIMIENTO')) {
     return 'FUNCIONAL';
   }
-  if (s.includes('FUNCIONAL') || s.includes('OK') || s.includes('BUENO')) {
+  if (s.includes('FUNCIONAL') || s.includes('OK') || s.includes('BUENO') || s.includes('NUEVA') || s.includes('ALQUILER')) {
     return 'FUNCIONAL';
   }
   return defaultEst;
@@ -76,7 +82,7 @@ function normalizarEstado(est, defaultEst = 'FUNCIONAL') {
 async function getOrCreateUser(client, cedulaRaw, nombreRaw, passwordHash) {
   const cedula = cleanString(cedulaRaw);
   const nombre = cleanString(nombreRaw);
-  if (!cedula) return null;
+  if (!cedula || cedula.toUpperCase() === 'N/A') return null;
 
   const resSelect = await client.query('SELECT id FROM usuarios WHERE cedula = $1', [cedula]);
   if (resSelect.rows.length > 0) {
@@ -101,7 +107,7 @@ async function getOrCreateUser(client, cedulaRaw, nombreRaw, passwordHash) {
 }
 
 async function ingestExcelWorkbook(filePath) {
-  console.log(`[Ingestor] Iniciando lectura de libro Excel: ${filePath}`);
+  console.log(`[Ingestor] Iniciando lectura de libro Excel maestro: ${filePath}`);
   const wb = XLSX.readFile(filePath);
   const defaultPasswordHash = await bcrypt.hash('Empleado123!', 10);
 
@@ -116,6 +122,11 @@ async function ingestExcelWorkbook(filePath) {
   try {
     await client.query('BEGIN');
 
+    // 1. Limpiar datos previos si es recarga completa de inventario
+    // (Preservando usuarios y auditoría base)
+    await client.query('DELETE FROM eventos_inventario WHERE detalles::text LIKE \'%Libro Excel%\'');
+    await client.query('DELETE FROM equipos');
+
     // Configuración de encabezados por hoja
     const sheetConfigs = [
       { name: 'EQUIPOS EN PRESTAMOS', headerRow: 4, cat: 'EQUIPOS_PRESTAMOS', mod: 'PROPIO' },
@@ -129,7 +140,7 @@ async function ingestExcelWorkbook(filePath) {
       { name: 'BAJAS', headerRow: 4, cat: 'BAJAS', mod: 'BAJA' },
     ];
 
-    let contadorSinPlaca = 1;
+    let contadorSinPlacaGlobal = 1;
 
     for (const cfg of sheetConfigs) {
       const ws = wb.Sheets[cfg.name];
@@ -162,12 +173,17 @@ async function ingestExcelWorkbook(filePath) {
         const marca = cleanString(data['Marca'] || data['MARCA']) || 'Genérica';
         const modelo = cleanString(data['Modelo'] || data['MODELO']) || 'Estándar';
         let tipo = cleanString(data['Tipo'] || data['TIPO']);
-        let sede = cleanString(data['Sede'] || data['SEDE'] || data['UBICACIÓN']) || 'Sede Principal';
+        let sede = cleanString(data['Sede'] || data['SEDE'] || data['UBICACIÓN']) || null;
         const area = cleanString(data['area'] || data['Area'] || data['AREA'] || data['área']);
         const cedula = cleanString(data['Cedula'] || data['CEDULA']);
-        const responsable = cleanString(data['Responsable'] || data['RESPONSABLE']);
+        let responsable = cleanString(data['Responsable'] || data['RESPONSABLE']);
         let estado = normalizarEstado(data['Estado'] || data['DISPONIBILIDAD'] || (cfg.cat === 'BAJAS' ? 'DE_BAJA' : 'FUNCIONAL'));
         if (cfg.cat === 'BAJAS') estado = 'DE_BAJA';
+
+        // Si el responsable indica estado de baja
+        if (responsable && responsable.toUpperCase().includes('DE BAJA')) {
+          estado = 'DE_BAJA';
+        }
 
         // Fechas
         const fechaOperacion = parseExcelDate(data['FECHA'] || data['Fecha devolucion'] || data['Fecha Baja']);
@@ -212,16 +228,16 @@ async function ingestExcelWorkbook(filePath) {
           tipo = 'Periférico';
         }
 
-        // Generar identificador si no tiene placa física
+        // Generar identificador único si no tiene placa física
         if (!placa || placa.toUpperCase() === 'N/A' || placa.toUpperCase() === 'PROVEEDOR') {
-          if (serial) {
+          if (serial && serial.toUpperCase() !== 'N/A') {
             placa = `${cfg.cat.slice(0, 4)}-${serial.replace(/[^A-Za-z0-9]/g, '')}`;
           } else {
-            placa = `${cfg.cat.slice(0, 4)}-${String(contadorSinPlaca++).padStart(4, '0')}`;
+            placa = `${cfg.cat.slice(0, 4)}-${String(contadorSinPlacaGlobal++).padStart(4, '0')}`;
           }
         }
 
-        if (!tipo) tipo = 'Laptop';
+        if (!tipo) tipo = cfg.cat === 'ELEMENTOS' ? 'Tableta' : 'Laptop';
 
         // Auto-aprovisionar usuario si tiene cédula
         let usuarioId = null;
@@ -229,15 +245,85 @@ async function ingestExcelWorkbook(filePath) {
           usuarioId = await getOrCreateUser(client, cedula, responsable, defaultPasswordHash);
         }
 
-        // Insertar o actualizar en base de datos
-        // Si ya existe por placa o serial
+        // Verificar si ya existe por placa o serial
         let existingId = null;
+        let existingCategoria = null;
         const checkRes = await client.query(
-          'SELECT id FROM equipos WHERE placa = $1 OR (serial = $2 AND serial IS NOT NULL AND serial != \'\') LIMIT 1',
+          'SELECT id, categoria, responsable_nombre, estado FROM equipos WHERE placa = $1 OR (serial = $2 AND serial IS NOT NULL AND serial != \'\') LIMIT 1',
           [placa, serial]
         );
         if (checkRes.rows.length > 0) {
           existingId = checkRes.rows[0].id;
+          existingCategoria = checkRes.rows[0].categoria;
+        }
+
+        // ============================================================
+        // REGLA CRÍTICA PARA DEVOLUCIONES:
+        // Si el equipo ya existe en inventario activo (ej. EQUIPOS EN PRESTAMOS o ALQUILER),
+        // DEVOLUCIONES es una novedad histórica: NO sobreescribir la categoría activa ni el responsable actual.
+        // ============================================================
+        if (cfg.cat === 'DEVOLUCIONES' && existingId) {
+          const fechaEv = fechaOperacion ? new Date(fechaOperacion) : new Date();
+          await client.query(
+            `INSERT INTO eventos_inventario (equipo_id, tipo_evento, descripcion, detalles, fecha_evento)
+             VALUES ($1, 'DEVOLUCION', $2, $3, $4)`,
+            [
+              existingId,
+              `Devolución histórica registrada: Entregó ${responsable || 'Colaborador'}, recibió ${recibidoPor || 'TI'} (Sede: ${sede})`,
+              JSON.stringify({ responsable, recibidoPor, fechaOperacion, observaciones, area, sede, origen: 'Libro Excel' }),
+              fechaEv,
+            ]
+          );
+          sheetActualizados++;
+          resumen.actualizados++;
+          continue;
+        }
+
+        // ============================================================
+        // REGLA PARA PRESTAMOS TEMPORALES:
+        // Si el equipo ya existe en inventario, registrar evento de préstamo
+        // ============================================================
+        if (cfg.cat === 'PRESTAMOS' && existingId) {
+          const fechaEv = fechaOperacion ? new Date(fechaOperacion) : new Date();
+          await client.query(
+            `INSERT INTO eventos_inventario (equipo_id, tipo_evento, descripcion, detalles, fecha_evento)
+             VALUES ($1, 'PRESTAMO', $2, $3, $4)`,
+            [
+              existingId,
+              `Préstamo temporal registrado a: ${responsable || solicitante || 'Colaborador'} (Solicitó: ${solicitante || 'N/A'})`,
+              JSON.stringify({ responsable, solicitante, fechaOperacion, observaciones, origen: 'Libro Excel' }),
+              fechaEv,
+            ]
+          );
+          // Actualizar modalidad a PRESTAMO_TEMPORAL preservando datos de inventario
+          await client.query(
+            `UPDATE equipos SET modalidad = 'PRESTAMO_TEMPORAL', solicitante = COALESCE($1, solicitante), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+            [solicitante, existingId]
+          );
+          sheetActualizados++;
+          resumen.actualizados++;
+          continue;
+        }
+
+        // ============================================================
+        // REGLA PARA BAJAS:
+        // Si el equipo ya existe en inventario, cambiar su estado a DE_BAJA y registrar motivo
+        // ============================================================
+        if (cfg.cat === 'BAJAS' && existingId) {
+          const fechaEv = fechaOperacion ? new Date(fechaOperacion) : new Date();
+          await client.query(
+            `INSERT INTO eventos_inventario (equipo_id, tipo_evento, descripcion, detalles, fecha_evento)
+             VALUES ($1, 'DE_BAJA', $2, $3, $4)`,
+            [
+              existingId,
+              `Novedad de baja/daño reportada: ${observaciones || 'Reportado en hoja de bajas'}`,
+              JSON.stringify({ observaciones, fechaBaja: fechaOperacion, placa, serial, origen: 'Libro Excel' }),
+              fechaEv,
+            ]
+          );
+          sheetActualizados++;
+          resumen.actualizados++;
+          continue;
         }
 
         if (existingId) {
@@ -381,13 +467,14 @@ async function ingestExcelWorkbook(filePath) {
           if (insertRes.rows.length > 0) {
             const tipoEv = cfg.cat === 'BAJAS' ? 'DE_BAJA' : cfg.cat === 'PRESTAMOS' ? 'PRESTAMO' : cfg.cat === 'DEVOLUCIONES' ? 'DEVOLUCION' : 'CREACION';
             await client.query(
-              `INSERT INTO eventos_inventario (equipo_id, tipo_evento, descripcion, detalles)
-               VALUES ($1, $2, $3, $4)`,
+              `INSERT INTO eventos_inventario (equipo_id, tipo_evento, descripcion, detalles, fecha_evento)
+               VALUES ($1, $2, $3, $4, COALESCE($5, CURRENT_TIMESTAMP))`,
               [
                 insertRes.rows[0].id,
                 tipoEv,
                 `Registro de activo desde hoja ${cfg.name} (Placa: ${placa})`,
-                JSON.stringify({ origen: `Libro Excel (${cfg.name})`, modulo: cfg.cat, placa }),
+                JSON.stringify({ origen: `Libro Excel (${cfg.name})`, modulo: cfg.cat, placa, serial }),
+                fechaOperacion ? new Date(fechaOperacion) : new Date(),
               ]
             );
           }

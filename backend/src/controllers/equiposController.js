@@ -1,10 +1,11 @@
 const db = require('../config/db');
+const hojaDeVidaService = require('../services/hojaDeVidaService');
 
 // Obtener listado de equipos con filtros y control de acceso RBAC
 async function getEquipos(req, res) {
   try {
     const { rol, cedula, id: userId } = req.user;
-    const { busqueda, estado, tipo, sede, area, modulo, cedula_responsable, responsable_nombre, usuario_asignado_id } = req.query;
+    const { busqueda, estado, tipo, sede, area, modulo, cedula_responsable, responsable_nombre, usuario_asignado_id, ordenPlaca } = req.query;
 
     let query = `
       SELECT 
@@ -42,7 +43,7 @@ async function getEquipos(req, res) {
       } else if (mod === 'impresoras') {
         query += ` AND (e.categoria = 'IMPRESORAS' OR e.tipo ILIKE '%impresora%')`;
       } else if (mod === 'elementos') {
-        query += ` AND (e.categoria = 'ELEMENTOS' OR e.tipo IN ('TABLETA', 'CAMARAS'))`;
+        query += ` AND (e.categoria = 'ELEMENTOS' OR e.tipo IN ('TABLETA', 'CAMARAS', 'Camara', 'ROUTER', 'Modem', 'BIOMETRICOS', 'LECTOR', 'MULTIPUERTOS', 'ANTENA', 'SIM', 'SCANNER DS - 640', 'DISCO EXTERNO 2 TB'))`;
       } else if (mod === 'perifericos') {
         query += ` AND (e.categoria = 'PERIFERICOS' OR e.tipo IN ('HUELLERO', 'Periférico', 'Monitor', 'Teclado'))`;
       } else if (mod === 'ups') {
@@ -64,7 +65,9 @@ async function getEquipos(req, res) {
         e.cedula_responsable ILIKE $${bIdx} OR
         e.area ILIKE $${bIdx} OR
         e.sede ILIKE $${bIdx} OR
-        e.ip ILIKE $${bIdx}
+        e.ip ILIKE $${bIdx} OR
+        e.solicitante ILIKE $${bIdx} OR
+        e.observaciones ILIKE $${bIdx}
       )`;
     }
 
@@ -79,8 +82,15 @@ async function getEquipos(req, res) {
     }
 
     if (sede && sede.trim() !== '') {
-      params.push(sede.trim());
-      query += ` AND e.sede = $${params.length}`;
+      const sTrim = sede.trim();
+      const numMatch = sTrim.match(/\b(68|105|106)\b/);
+      if (numMatch) {
+        params.push(`%${numMatch[1]}%`);
+        query += ` AND e.sede ILIKE $${params.length}`;
+      } else {
+        params.push(`%${sTrim}%`);
+        query += ` AND e.sede ILIKE $${params.length}`;
+      }
     }
 
     if (area && area.trim() !== '') {
@@ -103,7 +113,17 @@ async function getEquipos(req, res) {
       query += ` AND e.usuario_asignado_id = $${params.length}`;
     }
 
-    query += ` ORDER BY e.created_at DESC`;
+    if (ordenPlaca && (ordenPlaca.toLowerCase() === 'asc' || ordenPlaca.toLowerCase() === 'desc')) {
+      const dir = ordenPlaca.toUpperCase();
+      query += ` ORDER BY 
+        CASE 
+          WHEN e.placa ~ '^[0-9]+$' THEN e.placa::numeric 
+          ELSE NULL 
+        END ${dir} NULLS LAST,
+        e.placa ${dir} NULLS LAST`;
+    } else {
+      query += ` ORDER BY e.created_at DESC`;
+    }
 
     const result = await db.query(query, params);
     return res.json({
@@ -249,6 +269,11 @@ async function createEquipo(req, res) {
         JSON.stringify(nuevoEquipo),
       ]
     );
+
+    // Generación y archivo automático de la Hoja de Vida oficial en segundo plano
+    hojaDeVidaService.generarHojaDeVida(nuevoEquipo).catch((err) => {
+      console.warn('[HojaDeVida] Generación automática en creación omitida o fallida:', err.message);
+    });
 
     return res.status(201).json({
       message: 'Equipo creado exitosamente',
@@ -396,6 +421,11 @@ async function updateEquipo(req, res) {
       ]
     );
 
+    // Actualizar archivo oficial de Hoja de Vida en segundo plano
+    hojaDeVidaService.generarHojaDeVida(updatedEquipo).catch((err) => {
+      console.warn('[HojaDeVida] Generación automática en actualización omitida o fallida:', err.message);
+    });
+
     return res.json({
       message: 'Equipo actualizado correctamente',
       equipo: updatedEquipo,
@@ -478,7 +508,7 @@ async function getConteosModulos(req, res) {
         COUNT(*) FILTER (WHERE categoria = 'ALQUILER' OR modalidad = 'ALQUILER' OR area ILIKE '%alquil%') AS alquiler,
         COUNT(*) FILTER (WHERE categoria = 'DEVOLUCIONES' OR modalidad = 'DEVOLUCION' OR area ILIKE '%custod%') AS devoluciones,
         COUNT(*) FILTER (WHERE categoria = 'IMPRESORAS' OR tipo ILIKE '%impresora%') AS impresoras,
-        COUNT(*) FILTER (WHERE categoria = 'ELEMENTOS' OR tipo IN ('TABLETA', 'CAMARAS')) AS elementos,
+        COUNT(*) FILTER (WHERE categoria = 'ELEMENTOS' OR tipo IN ('TABLETA', 'CAMARAS', 'Camara', 'ROUTER', 'Modem', 'BIOMETRICOS', 'LECTOR', 'MULTIPUERTOS', 'ANTENA', 'SIM', 'SCANNER DS - 640', 'DISCO EXTERNO 2 TB')) AS elementos,
         COUNT(*) FILTER (WHERE categoria = 'PERIFERICOS' OR tipo IN ('HUELLERO', 'Periférico', 'Monitor', 'Teclado')) AS perifericos,
         COUNT(*) FILTER (WHERE categoria = 'UPS' OR tipo ILIKE '%ups%') AS ups,
         COUNT(*) FILTER (WHERE categoria = 'BAJAS' OR estado = 'DE_BAJA') AS bajas
@@ -542,6 +572,11 @@ async function registrarPrestamo(req, res) {
       ]
     );
 
+    // Actualizar archivo de Hoja de Vida con el nuevo responsable del préstamo
+    hojaDeVidaService.generarHojaDeVida(updated.rows[0]).catch((err) => {
+      console.warn('[HojaDeVida] Generación en préstamo omitida o fallida:', err.message);
+    });
+
     return res.json({ message: 'Préstamo temporal registrado exitosamente', equipo: updated.rows[0] });
   } catch (error) {
     console.error('[Equipos] Error al registrar préstamo:', error);
@@ -589,6 +624,11 @@ async function registrarDevolucion(req, res) {
         JSON.stringify({ quien_recibe: personaRecibe, responsable_previo: prevResponsable, observaciones })
       ]
     );
+
+    // Actualizar archivo de Hoja de Vida reflejando custodia
+    hojaDeVidaService.generarHojaDeVida(updated.rows[0]).catch((err) => {
+      console.warn('[HojaDeVida] Generación en devolución omitida o fallida:', err.message);
+    });
 
     return res.json({ message: 'Devolución registrada exitosamente', equipo: updated.rows[0] });
   } catch (error) {
@@ -676,6 +716,53 @@ async function getResumenAsignaciones(req, res) {
   }
 }
 
+// Descargar Hoja de Vida en formato oficial .xlsx
+async function descargarHojaDeVida(req, res) {
+  try {
+    const { id } = req.params;
+    const { rol, cedula, id: userId } = req.user;
+
+    const result = await db.query(
+      `SELECT 
+        e.*,
+        u.nombre_completo as usuario_asignado_nombre,
+        u.email as usuario_asignado_email,
+        u.cargo as usuario_cargo,
+        u.rol as usuario_rol
+      FROM equipos e
+      LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id
+      WHERE e.id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
+
+    const equipo = result.rows[0];
+
+    // Validación RBAC si es empleado
+    if (rol === 'EMPLEADO') {
+      const isOwner = equipo.cedula_responsable === cedula || equipo.usuario_asignado_id === userId;
+      if (!isOwner) {
+        return res.status(403).json({ error: 'No tienes permiso para descargar la hoja de vida de este equipo' });
+      }
+    }
+
+    const archivoGenerado = await hojaDeVidaService.generarHojaDeVida(equipo);
+
+    return res.download(archivoGenerado.filePath, archivoGenerado.fileName, (err) => {
+      if (err && !res.headersSent) {
+        console.error('[Equipos] Error al enviar archivo de hoja de vida:', err);
+        return res.status(500).json({ error: 'Error al descargar la Hoja de Vida' });
+      }
+    });
+  } catch (error) {
+    console.error('[Equipos] Error al generar Hoja de Vida:', error);
+    return res.status(500).json({ error: 'Error al generar la Hoja de Vida del equipo: ' + error.message });
+  }
+}
+
 module.exports = {
   getEquipos,
   getEquipoById,
@@ -688,4 +775,6 @@ module.exports = {
   registrarPrestamo,
   registrarDevolucion,
   reportarFallo,
+  descargarHojaDeVida,
 };
+

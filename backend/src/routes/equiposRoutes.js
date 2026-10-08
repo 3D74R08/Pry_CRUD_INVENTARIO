@@ -8,6 +8,7 @@ router.get('/', authenticateToken, equiposController.getEquipos);
 router.get('/conteos', authenticateToken, equiposController.getConteosModulos);
 router.get('/resumen-asignaciones', authenticateToken, equiposController.getResumenAsignaciones);
 router.get('/:id', authenticateToken, equiposController.getEquipoById);
+router.get('/:id/hoja-de-vida', authenticateToken, equiposController.descargarHojaDeVida);
 
 // Operaciones de modificación (ADMIN y TECNICO)
 router.post('/', authenticateToken, authorize(['ADMIN', 'TECNICO']), equiposController.createEquipo);
