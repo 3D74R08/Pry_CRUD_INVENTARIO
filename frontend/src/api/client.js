@@ -193,6 +193,45 @@ export const api = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+  getPlantillaHojaVidaInfo: () => request('/tareas/plantilla-hoja-vida/info'),
+  subirPlantillaHojaVida: async (file) => {
+    const formData = new FormData();
+    formData.append('plantilla', file);
+    const token = localStorage.getItem('activos_ti_token');
+    return request('/tareas/plantilla-hoja-vida', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+  descargarPlantillaHojaVida: async () => {
+    const token = localStorage.getItem('activos_ti_token');
+    const response = await fetch('/api/tareas/plantilla-hoja-vida', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Error al descargar la plantilla de Hoja de Vida');
+    }
+
+    let filename = 'Plantilla_HJ.xltx';
+    const disposition = response.headers.get('content-disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
 
   // Usuarios (Admin)
   getUsuarios: () => request('/usuarios'),

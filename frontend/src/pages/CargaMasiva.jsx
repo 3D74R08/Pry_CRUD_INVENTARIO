@@ -15,12 +15,20 @@ export default function CargaMasiva({ onNavigate }) {
   const [error, setError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Plantilla oficial
+  // Plantilla oficial de Inventario
   const [plantillaInfo, setPlantillaInfo] = useState(null);
   const [modalPlantillaOpen, setModalPlantillaOpen] = useState(false);
   const [archivoPlantilla, setArchivoPlantilla] = useState(null);
   const [subiendoPlantilla, setSubiendoPlantilla] = useState(false);
   const [errorPlantilla, setErrorPlantilla] = useState('');
+
+  // Plantilla oficial de Hoja de Vida
+  const [plantillaHJInfo, setPlantillaHJInfo] = useState(null);
+  const [modalPlantillaHJOpen, setModalPlantillaHJOpen] = useState(false);
+  const [archivoPlantillaHJ, setArchivoPlantillaHJ] = useState(null);
+  const [subiendoPlantillaHJ, setSubiendoPlantillaHJ] = useState(false);
+  const [descargandoPlantillaHJ, setDescargandoPlantillaHJ] = useState(false);
+  const [errorPlantillaHJ, setErrorPlantillaHJ] = useState('');
 
   // Stepper state: 1 = Subir archivo, 2 = Procesando en Worker, 3 = Resultado
   const getPasoActual = () => {
@@ -50,9 +58,19 @@ export default function CargaMasiva({ onNavigate }) {
     }
   };
 
+  const cargarPlantillaHJInfo = async () => {
+    try {
+      const data = await api.getPlantillaHojaVidaInfo();
+      setPlantillaHJInfo(data.metadata || null);
+    } catch (err) {
+      console.error('Error al consultar info de plantilla de Hoja de Vida:', err);
+    }
+  };
+
   useEffect(() => {
     cargarHistorial();
     cargarPlantillaInfo();
+    cargarPlantillaHJInfo();
   }, []);
 
   // Polling del estado de la tarea activa mientras esté PENDIENTE o EN_PROCESO
@@ -183,7 +201,7 @@ export default function CargaMasiva({ onNavigate }) {
     setErrorPlantilla('');
     try {
       const res = await api.subirPlantillaOficial(archivoPlantilla);
-      setMensaje(res.message || 'Plantilla oficial actualizada con éxito.');
+      setMensaje(res.message || 'Plantilla oficial de inventario actualizada con éxito.');
       setModalPlantillaOpen(false);
       setArchivoPlantilla(null);
       cargarPlantillaInfo();
@@ -191,6 +209,35 @@ export default function CargaMasiva({ onNavigate }) {
       setErrorPlantilla(err.message || 'Error al actualizar plantilla');
     } finally {
       setSubiendoPlantilla(false);
+    }
+  };
+
+  const handleDescargarPlantillaHJ = async () => {
+    setDescargandoPlantillaHJ(true);
+    try {
+      await api.descargarPlantillaHojaVida();
+    } catch (err) {
+      setError('No se pudo descargar la plantilla de Hoja de Vida: ' + (err.message || 'Error del servidor'));
+    } finally {
+      setDescargandoPlantillaHJ(false);
+    }
+  };
+
+  const handleSubirPlantillaHJ = async (e) => {
+    e.preventDefault();
+    if (!archivoPlantillaHJ) return;
+    setSubiendoPlantillaHJ(true);
+    setErrorPlantillaHJ('');
+    try {
+      const res = await api.subirPlantillaHojaVida(archivoPlantillaHJ);
+      setMensaje(res.message || 'Plantilla de Hoja de Vida configurada con éxito.');
+      setModalPlantillaHJOpen(false);
+      setArchivoPlantillaHJ(null);
+      cargarPlantillaHJInfo();
+    } catch (err) {
+      setErrorPlantillaHJ(err.message || 'Error al actualizar plantilla de Hoja de Vida');
+    } finally {
+      setSubiendoPlantillaHJ(false);
     }
   };
 
@@ -231,67 +278,168 @@ export default function CargaMasiva({ onNavigate }) {
             <button
               className="btn btn-warning"
               onClick={() => {
-                setErrorPlantilla('');
-                setModalPlantillaOpen(true);
+                setErrorPlantillaHJ('');
+                setModalPlantillaHJOpen(true);
               }}
-              title="Configurar o reemplazar la plantilla oficial de tu empresa (.xltx / .xlsx)"
+              title="Subir o actualizar la plantilla oficial de Hojas de Vida (Plantilla_HJ.xltx)"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              <UploadCloudIcon size={14} /> Configurar Plantilla Oficial
+              <UploadCloudIcon size={14} /> Subir Plantilla Hoja de Vida
             </button>
           )}
         </div>
       </div>
 
-      {/* Información de Plantilla Oficial Activa */}
-      {plantillaInfo && (
+      {/* Sección de Plantillas Maestras y Hojas de Vida */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        {/* Tarjeta 1: Plantilla Maestra de Carga de Inventario */}
+        {plantillaInfo && (
+          <div
+            className="card"
+            style={{
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ background: 'var(--primary-light)', padding: '10px', borderRadius: 'var(--radius)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileTextIcon size={24} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>Plantilla Maestra Inventario:</span>
+                  <span className="placa-tag" style={{ fontSize: '11px' }}>
+                    {plantillaInfo.filename}
+                  </span>
+                  {plantillaInfo.isCustom && (
+                    <span className="badge badge-funcional" style={{ fontSize: '10.5px' }}>
+                      Personalizada
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {plantillaInfo.updatedBy ? `Por: ${plantillaInfo.updatedBy} · ` : ''}
+                  {plantillaInfo.updatedAt ? new Date(plantillaInfo.updatedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                  {plantillaInfo.size ? ` · ${(plantillaInfo.size / 1024).toFixed(1)} KB` : ''}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Utilizada para la carga masiva y validación de activos (FRMA-07).
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleDescargarPlantillaOficial}
+                disabled={descargandoPlantilla}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              >
+                <DownloadIcon size={13} /> {descargandoPlantilla ? 'Descargando...' : 'Descargar'}
+              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="btn btn-warning btn-sm"
+                  onClick={() => {
+                    setErrorPlantilla('');
+                    setModalPlantillaOpen(true);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <RefreshCwIcon size={13} /> Cambiar Plantilla
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tarjeta 2: Plantilla Oficial de Hoja de Vida */}
         <div
           className="card"
           style={{
-            padding: '12px 18px',
-            marginBottom: '20px',
+            padding: '16px 18px',
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
             justifyContent: 'space-between',
             gap: '12px',
-            flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <FileTextIcon size={24} color="var(--primary)" />
-            <div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <div style={{ background: (plantillaHJInfo?.existe || plantillaHJInfo?.exists) ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', padding: '10px', borderRadius: 'var(--radius)', color: (plantillaHJInfo?.existe || plantillaHJInfo?.exists) ? '#10b981' : 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <LaptopIcon size={24} />
+            </div>
+            <div style={{ flex: 1 }}>
               <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ color: 'var(--text-main)' }}>Plantilla Maestra Activa:</span>
-                <span className="placa-tag" style={{ fontSize: '12px' }}>
-                  {plantillaInfo.filename}
+                <span>Plantilla Hoja de Vida:</span>
+                <span className="placa-tag" style={{ fontSize: '11px' }}>
+                  {plantillaHJInfo?.filename || 'Plantilla_HJ.xltx'}
                 </span>
-                {plantillaInfo.isCustom && (
+                {(plantillaHJInfo?.existe || plantillaHJInfo?.exists) ? (
                   <span className="badge badge-funcional" style={{ fontSize: '10.5px' }}>
-                    Personalizada por Empresa
+                    Disponible
+                  </span>
+                ) : (
+                  <span className="badge badge-baja" style={{ fontSize: '10.5px' }}>
+                    No encontrada
+                  </span>
+                )}
+                {plantillaHJInfo?.isCustom && (
+                  <span className="badge" style={{ fontSize: '10.5px', background: '#e0e7ff', color: '#3730a3' }}>
+                    Personalizada
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                Configurada por: <b style={{ color: 'var(--text-main)' }}>{plantillaInfo.updatedBy}</b> · Actualizada:{' '}
-                {new Date(plantillaInfo.updatedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {(plantillaInfo.size / 1024).toFixed(1)} KB
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {(plantillaHJInfo?.existe || plantillaHJInfo?.exists) ? (
+                  <>
+                    {plantillaHJInfo.updatedBy ? `Por: ${plantillaHJInfo.updatedBy} · ` : ''}
+                    {plantillaHJInfo.updatedAt ? new Date(plantillaHJInfo.updatedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                    {plantillaHJInfo.size ? ` · ${(plantillaHJInfo.size / 1024).toFixed(1)} KB` : ''}
+                  </>
+                ) : (
+                  <span style={{ color: 'var(--danger)' }}>
+                    Falta la plantilla en el servidor para generar las Hojas de Vida (.xltx).
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Utilizada para exportar Hojas de Vida individuales de equipos en formato Excel.
               </div>
             </div>
           </div>
-          {isAdmin && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                setErrorPlantilla('');
-                setModalPlantillaOpen(true);
-              }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-            >
-              <RefreshCwIcon size={13} /> Cambiar Plantilla
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+            {(plantillaHJInfo?.existe || plantillaHJInfo?.exists) && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleDescargarPlantillaHJ}
+                disabled={descargandoPlantillaHJ}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              >
+                <DownloadIcon size={13} /> {descargandoPlantillaHJ ? 'Descargando...' : 'Descargar'}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  setErrorPlantillaHJ('');
+                  setArchivoPlantillaHJ(null);
+                  setModalPlantillaHJOpen(true);
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              >
+                <UploadCloudIcon size={13} /> {(plantillaHJInfo?.existe || plantillaHJInfo?.exists) ? 'Actualizar Plantilla' : 'Subir Plantilla'}
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Stepper Visual de 3 Pasos (Panel 6) */}
       <div className="stepper-container">
@@ -671,6 +819,84 @@ export default function CargaMasiva({ onNavigate }) {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   {subiendoPlantilla ? 'Guardando...' : <><UploadCloudIcon size={14} /> Guardar como Plantilla Oficial</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Subir / Actualizar Plantilla de Hoja de Vida (Solo ADMIN) */}
+      {modalPlantillaHJOpen && (
+        <div className="modal-backdrop" onClick={() => setModalPlantillaHJOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Subir Plantilla Oficial de Hoja de Vida</h3>
+              <button className="btn-icon" onClick={() => setModalPlantillaHJOpen(false)}>
+                <XIcon size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubirPlantillaHJ}>
+              <div className="modal-body">
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                  Sube el archivo de plantilla oficial para Hojas de Vida (<code>Plantilla_HJ.xltx</code> o <code>.xlsx</code>). Esta plantilla se utilizará automáticamente para generar y exportar las Hojas de Vida individuales de los equipos.
+                </p>
+
+                <div
+                  style={{
+                    border: '2px dashed var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '24px',
+                    textAlign: 'center',
+                    background: 'var(--bg-app)',
+                    cursor: 'pointer',
+                    marginBottom: '14px',
+                  }}
+                  onClick={() => document.getElementById('input-archivo-plantilla-hj').click()}
+                >
+                  <input
+                    id="input-archivo-plantilla-hj"
+                    type="file"
+                    accept=".xltx,.xlsx"
+                    style={{ display: 'none' }}
+                    onChange={(e) => setArchivoPlantillaHJ(e.target.files[0] || null)}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                    <LaptopIcon size={38} color="#10b981" />
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: '13px' }}>
+                    {archivoPlantillaHJ ? archivoPlantillaHJ.name : 'Haz clic para seleccionar Plantilla_HJ.xltx o .xlsx'}
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {archivoPlantillaHJ
+                      ? `${(archivoPlantillaHJ.size / 1024).toFixed(1)} KB`
+                      : 'Formatos soportados: Plantilla (.xltx) o Libro (.xlsx) de Excel'}
+                  </div>
+                </div>
+
+                {errorPlantillaHJ && (
+                  <div style={{ color: 'var(--danger)', fontSize: '12.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangleIcon size={14} /> {errorPlantillaHJ}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setModalPlantillaHJOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!archivoPlantillaHJ || subiendoPlantillaHJ}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {subiendoPlantillaHJ ? 'Guardando...' : <><UploadCloudIcon size={14} /> Guardar Plantilla de Hoja de Vida</>}
                 </button>
               </div>
             </form>

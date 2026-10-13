@@ -231,6 +231,180 @@ function descargarPlantilla(req, res) {
   }
 }
 
+// Obtener información y metadatos de la plantilla de Hoja de Vida
+function getPlantillaHojaVidaInfo(req, res) {
+  try {
+    const templatesDir = path.join(__dirname, '../../templates');
+    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+    const metaPath = path.join(templatesDir, 'plantilla_hj_metadata.json');
+
+    const possiblePaths = [
+      path.join(templatesDir, 'Plantilla_HJ.xltx'),
+      path.join(uploadDir, 'templates/Plantilla_HJ.xltx'),
+      path.join(uploadDir, 'Plantilla_HJ.xltx'),
+      '/app/templates/Plantilla_HJ.xltx',
+      path.join(templatesDir, 'Plantilla_HJ.xlsx'),
+    ];
+
+    let foundPath = null;
+    for (const p of possiblePaths) {
+      if (p && fs.existsSync(p)) {
+        foundPath = p;
+        break;
+      }
+    }
+
+    if (fs.existsSync(metaPath) && foundPath) {
+      const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+      return res.json({
+        metadata: {
+          ...meta,
+          existe: true,
+          exists: true,
+        },
+      });
+    }
+
+    if (foundPath) {
+      const stats = fs.statSync(foundPath);
+      return res.json({
+        metadata: {
+          filename: path.basename(foundPath),
+          updatedAt: stats.mtime.toISOString(),
+          updatedBy: 'Plantilla Institucional Base',
+          size: stats.size,
+          isCustom: false,
+          existe: true,
+          exists: true,
+        },
+      });
+    }
+
+    return res.json({
+      metadata: {
+        filename: 'Plantilla_HJ.xltx',
+        existe: false,
+        exists: false,
+      },
+    });
+  } catch (error) {
+    console.error('[Tareas] Error al consultar información de plantilla de Hoja de Vida:', error);
+    return res.status(500).json({ error: 'Error al consultar metadatos de la plantilla de Hoja de Vida' });
+  }
+}
+
+// Subir / Actualizar plantilla oficial de Hoja de Vida (Solo ADMIN)
+async function subirPlantillaHojaVida(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Debes adjuntar un archivo de plantilla válido (.xltx o .xlsx)' });
+    }
+
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (!['.xltx', '.xlsx'].includes(ext)) {
+      return res.status(400).json({ error: 'Formato no soportado. Debe ser un archivo de plantilla (.xltx o .xlsx)' });
+    }
+
+    const templatesDir = path.join(__dirname, '../../templates');
+    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+    const uploadTemplatesDir = path.join(uploadDir, 'templates');
+
+    if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
+    if (!fs.existsSync(uploadTemplatesDir)) fs.mkdirSync(uploadTemplatesDir, { recursive: true });
+
+    const destinoHJ = path.join(templatesDir, 'Plantilla_HJ.xltx');
+    const destinoUpload = path.join(uploadTemplatesDir, 'Plantilla_HJ.xltx');
+    const metaPath = path.join(templatesDir, 'plantilla_hj_metadata.json');
+
+    // Copiar a directorio templates y a uploads para persistencia total
+    fs.copyFileSync(req.file.path, destinoHJ);
+    fs.copyFileSync(req.file.path, destinoUpload);
+
+    const metadata = {
+      filename: req.file.originalname,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user.nombre_completo || req.user.email,
+      size: req.file.size,
+      isCustom: true,
+      existe: true,
+    };
+
+    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+
+    // Registrar en auditoría inmutable
+    try {
+      await db.query(
+        `INSERT INTO eventos_inventario (usuario_id, tipo_evento, descripcion, detalles)
+         VALUES ($1, 'MODIFICACION', $2, $3)`,
+        [
+          req.user.id,
+          `Actualización de Plantilla Oficial de Hoja de Vida: ${req.file.originalname} por ${req.user.nombre_completo}`,
+          JSON.stringify({
+            archivo_original: req.file.originalname,
+            tamano_bytes: req.file.size,
+            mimetype: req.file.mimetype,
+          }),
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('[Tareas] No se pudo registrar auditoría de plantilla Hoja de Vida:', auditErr);
+    }
+
+    return res.json({
+      message: `Plantilla de Hoja de Vida "${req.file.originalname}" configurada exitosamente.`,
+      metadata,
+    });
+  } catch (error) {
+    console.error('[Tareas] Error al subir plantilla de Hoja de Vida:', error);
+    return res.status(500).json({ error: 'Error al guardar la nueva plantilla de Hoja de Vida: ' + error.message });
+  }
+}
+
+// Descargar plantilla oficial de Hoja de Vida (.xltx)
+function descargarPlantillaHojaVida(req, res) {
+  try {
+    const templatesDir = path.join(__dirname, '../../templates');
+    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+    const metaPath = path.join(templatesDir, 'plantilla_hj_metadata.json');
+
+    const possiblePaths = [
+      path.join(templatesDir, 'Plantilla_HJ.xltx'),
+      path.join(uploadDir, 'templates/Plantilla_HJ.xltx'),
+      path.join(uploadDir, 'Plantilla_HJ.xltx'),
+      '/app/templates/Plantilla_HJ.xltx',
+      path.join(templatesDir, 'Plantilla_HJ.xlsx'),
+    ];
+
+    let foundPath = null;
+    for (const p of possiblePaths) {
+      if (p && fs.existsSync(p)) {
+        foundPath = p;
+        break;
+      }
+    }
+
+    if (!foundPath) {
+      return res.status(404).json({ error: 'No se encontró la plantilla de Hoja de Vida (Plantilla_HJ.xltx) en el servidor' });
+    }
+
+    let nombreArchivo = 'Plantilla_HJ.xltx';
+    if (fs.existsSync(metaPath)) {
+      try {
+        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        if (meta.filename) nombreArchivo = meta.filename;
+      } catch (_) {}
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.template');
+    const fileStream = fs.createReadStream(foundPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('[Tareas] Error al descargar plantilla de Hoja de Vida:', error);
+    return res.status(500).json({ error: 'Error al procesar la descarga de la plantilla de Hoja de Vida' });
+  }
+}
+
 module.exports = {
   crearTareaCargaMasiva,
   getTareaById,
@@ -238,5 +412,8 @@ module.exports = {
   descargarPlantilla,
   getPlantillaInfo,
   subirPlantilla,
+  getPlantillaHojaVidaInfo,
+  subirPlantillaHojaVida,
+  descargarPlantillaHojaVida,
 };
 

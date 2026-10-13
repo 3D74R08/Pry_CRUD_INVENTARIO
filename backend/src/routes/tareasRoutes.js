@@ -59,6 +59,17 @@ router.post(
   tareasController.subirPlantilla
 );
 
+// Gestión de Plantilla Oficial de Hoja de Vida (Plantilla_HJ.xltx)
+router.get('/plantilla-hoja-vida/info', authenticateToken, tareasController.getPlantillaHojaVidaInfo);
+router.get('/plantilla-hoja-vida', authenticateToken, tareasController.descargarPlantillaHojaVida);
+router.post(
+  '/plantilla-hoja-vida',
+  authenticateToken,
+  authorize(['ADMIN']),
+  upload.single('plantilla'),
+  tareasController.subirPlantillaHojaVida
+);
+
 // Consultar estado de una tarea por ID
 router.get('/:id', authenticateToken, tareasController.getTareaById);
 

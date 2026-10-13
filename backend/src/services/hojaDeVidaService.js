@@ -25,11 +25,21 @@ function setCell(sheet, cellRef, val) {
  * Obtiene la ruta física absoluta de la plantilla institucional
  */
 function getTemplatePath() {
+  const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
   const possiblePaths = [
     process.env.TEMPLATE_PATH,
     path.join(__dirname, '../../templates/Plantilla_HJ.xltx'),
     path.join(__dirname, '../templates/Plantilla_HJ.xltx'),
-    '/app/templates/Plantilla_HJ.xltx'
+    '/app/templates/Plantilla_HJ.xltx',
+    path.join(uploadDir, 'templates/Plantilla_HJ.xltx'),
+    path.join(uploadDir, 'Plantilla_HJ.xltx'),
+    path.join(__dirname, '../../templates/plantilla_hj.xltx'),
+    path.join(__dirname, '../../templates/Plantilla_HJ.xlsx'),
+    path.join(__dirname, '../../templates/plantilla_hj.xlsx'),
+    '/app/templates/plantilla_hj.xltx',
+    '/app/templates/Plantilla_HJ.xlsx',
+    path.join(uploadDir, 'templates/Plantilla_HJ.xlsx'),
+    path.join(uploadDir, 'Plantilla_HJ.xlsx'),
   ];
 
   for (const p of possiblePaths) {

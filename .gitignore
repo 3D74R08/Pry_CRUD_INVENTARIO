@@ -21,6 +21,7 @@ backend/uploads/
 *.xls
 *.xltx
 !backend/templates/plantilla_inventario.xltx
+!backend/templates/Plantilla_HJ.xltx
 backend/templates/plantilla_activa.*
 backend/templates/plantilla_metadata.json
 
