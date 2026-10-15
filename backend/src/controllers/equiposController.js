@@ -422,9 +422,17 @@ async function updateEquipo(req, res) {
     );
 
     // Actualizar archivo oficial de Hoja de Vida en segundo plano
-    hojaDeVidaService.generarHojaDeVida(updatedEquipo).catch((err) => {
-      console.warn('[HojaDeVida] Generación automática en actualización omitida o fallida:', err.message);
-    });
+    (async () => {
+      try {
+        const accionesRes = await db.query(
+          `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
+          [id]
+        );
+        await hojaDeVidaService.generarHojaDeVida(updatedEquipo, accionesRes.rows);
+      } catch (err) {
+        console.warn('[HojaDeVida] Generación automática en actualización omitida:', err.message);
+      }
+    })();
 
     return res.json({
       message: 'Equipo actualizado correctamente',
@@ -792,6 +800,28 @@ async function agregarAccionHojaVida(req, res) {
       console.warn('[Equipos] Error al registrar evento de mantenimiento:', auditErr);
     }
 
+    // Actualizar archivo físico de Hoja de Vida en segundo plano
+    (async () => {
+      try {
+        const eqRes = await db.query(
+          `SELECT e.*, u.nombre_completo as usuario_asignado_nombre, u.email as usuario_asignado_email, u.cargo as usuario_cargo, u.rol as usuario_rol
+           FROM equipos e
+           LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id
+           WHERE e.id = $1`,
+          [id]
+        );
+        if (eqRes.rows.length > 0) {
+          const accionesRes = await db.query(
+            `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
+            [id]
+          );
+          await hojaDeVidaService.generarHojaDeVida(eqRes.rows[0], accionesRes.rows);
+        }
+      } catch (genErr) {
+        console.warn('[HojaDeVida] Sincronización en segundo plano omitida:', genErr.message);
+      }
+    })();
+
     return res.status(201).json({
       message: 'Acción registrada con éxito en la Hoja de Vida',
       accion: insertRes.rows[0],
@@ -815,6 +845,28 @@ async function eliminarAccionHojaVida(req, res) {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Acción no encontrada' });
     }
+
+    // Actualizar archivo físico de Hoja de Vida en segundo plano
+    (async () => {
+      try {
+        const eqRes = await db.query(
+          `SELECT e.*, u.nombre_completo as usuario_asignado_nombre, u.email as usuario_asignado_email, u.cargo as usuario_cargo, u.rol as usuario_rol
+           FROM equipos e
+           LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id
+           WHERE e.id = $1`,
+          [id]
+        );
+        if (eqRes.rows.length > 0) {
+          const accionesRes = await db.query(
+            `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
+            [id]
+          );
+          await hojaDeVidaService.generarHojaDeVida(eqRes.rows[0], accionesRes.rows);
+        }
+      } catch (genErr) {
+        console.warn('[HojaDeVida] Sincronización en segundo plano omitida tras eliminar:', genErr.message);
+      }
+    })();
 
     return res.json({ message: 'Acción eliminada correctamente' });
   } catch (error) {
@@ -919,6 +971,19 @@ async function updateHojaVida(req, res) {
         JSON.stringify({ updatedFields: req.body }),
       ]
     );
+
+    // Actualizar archivo oficial de Hoja de Vida en segundo plano
+    (async () => {
+      try {
+        const accionesRes = await db.query(
+          `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
+          [id]
+        );
+        await hojaDeVidaService.generarHojaDeVida(updatedEquipo, accionesRes.rows);
+      } catch (err) {
+        console.warn('[HojaDeVida] Generación tras edición omitida:', err.message);
+      }
+    })();
 
     return res.json({
       message: 'Hoja de Vida actualizada correctamente',
