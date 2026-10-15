@@ -266,14 +266,12 @@ async function generarHojaDeVida(equipo, acciones = []) {
     lastActionRow = rExtra;
   }
 
-  // Fila separadora en blanco antes de firmas
+  // Fila separadora en blanco antes de firmas (solo altura, sin tocar bordes para preservar la fila superior)
   const blankRow = lastActionRow + 1;
   const rowBlank = ws.getRow(blankRow);
   rowBlank.height = 14;
   for (let c = 1; c <= 10; c++) {
-    const cell = rowBlank.getCell(c);
-    cell.value = null;
-    cell.border = null;
+    rowBlank.getCell(c).value = null;
   }
 
   // Posicionar bloque oficial de firmas dinámicamente debajo de toda la bitácora
@@ -349,8 +347,35 @@ async function generarHojaDeVida(equipo, acciones = []) {
   cG3.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
 
   ws.getRow(s3).height = 18;
-  for (let c = 2; c <= 8; c++) {
-    ws.getCell(s3, c).border = borderThin;
+  // PASO FINAL: Garantizar bordes finos completos e inalterables en todas las filas de la bitácora
+  for (let c = 1; c <= 10; c++) {
+    ws.getCell(39, c).border = {
+      top: { style: 'thin', color: { argb: 'FF000000' } },
+      left: { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } },
+      right: { style: 'thin', color: { argb: 'FF000000' } }
+    };
+  }
+  for (let r = startRow; r <= lastActionRow; r++) {
+    for (let c = 1; c <= 10; c++) {
+      ws.getCell(r, c).border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+    }
+  }
+
+  for (const sr of [s1, s2, s3]) {
+    for (let c = 2; c <= 8; c++) {
+      ws.getCell(sr, c).border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+    }
   }
 
   // Guardar archivo final .xlsx preservando toda la estructura y estilos
