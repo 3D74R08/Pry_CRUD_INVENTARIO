@@ -67,6 +67,31 @@ app.use((err, req, res, next) => {
   return res.status(500).json({ error: 'Error interno en el servidor API Core' });
 });
 
+// Sincronización automática no bloqueante del esquema de Hoja de Vida
+(async () => {
+  try {
+    const db = require('./config/db');
+    await db.query(`
+      ALTER TABLE equipos ADD COLUMN IF NOT EXISTS cargo VARCHAR(100);
+      ALTER TABLE equipos ADD COLUMN IF NOT EXISTS codigo_interno VARCHAR(100);
+      ALTER TABLE equipos ADD COLUMN IF NOT EXISTS software_instalado TEXT;
+      CREATE TABLE IF NOT EXISTS hoja_vida_acciones (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        equipo_id UUID NOT NULL REFERENCES equipos(id) ON DELETE CASCADE,
+        accion_realizada VARCHAR(150) NOT NULL,
+        fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+        procedimiento_realizado TEXT NOT NULL,
+        realizado_por VARCHAR(150),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_hoja_vida_acciones_equipo ON hoja_vida_acciones(equipo_id, fecha ASC);
+    `);
+    console.log('[DB] Esquema de Hoja de Vida verificado y sincronizado correctamente');
+  } catch (err) {
+    console.warn('[DB] Verificación de esquema de Hoja de Vida:', err.message);
+  }
+})();
+
 // Inicio del servidor
 app.listen(PORT, () => {
   console.log(`[API Core] Servidor escuchando activamente en el puerto ${PORT}`);
