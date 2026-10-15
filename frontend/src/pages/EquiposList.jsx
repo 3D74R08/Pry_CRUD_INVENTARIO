@@ -26,6 +26,7 @@ import {
   MapPinIcon,
   XIcon,
   CheckIcon,
+  DownloadIcon,
 } from '../components/Icons';
 
 const DEFAULT_TIPOS_EQUIPO = [
@@ -466,6 +467,24 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   const [historialEquipo, setHistorialEquipo] = useState(null);
   const [descargandoHJ, setDescargandoHJ] = useState(null);
 
+  // Estados para Ventana Emergente de Hoja de Vida
+  const [modalHojaVidaOpen, setModalHojaVidaOpen] = useState(false);
+  const [equipoHojaVida, setEquipoHojaVida] = useState(null);
+  const [formHojaVida, setFormHojaVida] = useState({});
+  const [accionesHojaVida, setAccionesHojaVida] = useState([]);
+  const [cargandoHojaVida, setCargandoHojaVida] = useState(false);
+  const [guardandoHojaVida, setGuardandoHojaVida] = useState(false);
+  const [nuevaAccion, setNuevaAccion] = useState({
+    accion_realizada: 'MANTENIMIENTO PREVENTIVO',
+    accion_personalizada: '',
+    fecha: new Date().toISOString().slice(0, 10),
+    procedimiento_realizado: '',
+  });
+  const [guardandoAccion, setGuardandoAccion] = useState(false);
+  const [mensajeHojaVida, setMensajeHojaVida] = useState('');
+  const [errorHojaVida, setErrorHojaVida] = useState('');
+  const [tabHojaVida, setTabHojaVida] = useState('datos');
+
   // Estados para Préstamo desde Custodia (Módulo Préstamos Temporales)
   const [modalPrestarCustodiaOpen, setModalPrestarCustodiaOpen] = useState(false);
   const [equiposCustodiaDisponibles, setEquiposCustodiaDisponibles] = useState([]);
@@ -870,6 +889,158 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       alert('No se pudo generar/descargar la Hoja de Vida: ' + err.message);
     } finally {
       setDescargandoHJ(null);
+    }
+  };
+
+  // Abrir ventana emergente de Hoja de Vida
+  const handleAbrirHojaVida = async (eq) => {
+    setEquipoHojaVida(eq);
+    setFormHojaVida({
+      responsable_nombre: eq.responsable_nombre || '',
+      cedula_responsable: eq.cedula_responsable || '',
+      cargo: eq.cargo || '',
+      sede: eq.sede || '',
+      area: eq.area || '',
+      codigo_interno: eq.codigo_interno || '',
+      placa: eq.placa || '',
+      tipo: eq.tipo || 'Laptop',
+      marca: eq.marca || '',
+      modelo: eq.modelo || '',
+      serial: eq.serial || '',
+      board: eq.board || '',
+      procesador: eq.procesador || '',
+      ram: eq.ram || '',
+      almacenamiento: eq.almacenamiento || '',
+      sistema_operativo: eq.sistema_operativo || 'Windows 11 Pro',
+      software_instalado: eq.software_instalado || '',
+      ip: eq.ip || 'DHCP',
+      observaciones: eq.observaciones || '',
+      estado: eq.estado || 'FUNCIONAL',
+    });
+    setNuevaAccion({
+      accion_realizada: 'MANTENIMIENTO PREVENTIVO',
+      accion_personalizada: '',
+      fecha: new Date().toISOString().slice(0, 10),
+      procedimiento_realizado: '',
+    });
+    setTabHojaVida('datos');
+    setMensajeHojaVida('');
+    setErrorHojaVida('');
+    setModalHojaVidaOpen(true);
+    setCargandoHojaVida(true);
+
+    try {
+      const res = await api.getHojaVidaDatos(eq.id);
+      if (res && res.equipo) {
+        setEquipoHojaVida(res.equipo);
+        setFormHojaVida({
+          responsable_nombre: res.equipo.responsable_nombre || '',
+          cedula_responsable: res.equipo.cedula_responsable || '',
+          cargo: res.equipo.cargo || res.equipo.usuario_cargo || '',
+          sede: res.equipo.sede || '',
+          area: res.equipo.area || '',
+          codigo_interno: res.equipo.codigo_interno || '',
+          placa: res.equipo.placa || '',
+          tipo: res.equipo.tipo || 'Laptop',
+          marca: res.equipo.marca || '',
+          modelo: res.equipo.modelo || '',
+          serial: res.equipo.serial || '',
+          board: res.equipo.board || '',
+          procesador: res.equipo.procesador || '',
+          ram: res.equipo.ram || '',
+          almacenamiento: res.equipo.almacenamiento || '',
+          sistema_operativo: res.equipo.sistema_operativo || 'Windows 11 Pro',
+          software_instalado: res.equipo.software_instalado || '',
+          ip: res.equipo.ip || 'DHCP',
+          observaciones: res.equipo.observaciones || '',
+          estado: res.equipo.estado || 'FUNCIONAL',
+        });
+      }
+      setAccionesHojaVida(res.acciones || []);
+    } catch (err) {
+      console.error('Error al cargar hoja de vida:', err);
+      setErrorHojaVida('Error al cargar datos de la Hoja de Vida: ' + err.message);
+    } finally {
+      setCargandoHojaVida(false);
+    }
+  };
+
+  // Guardar cambios de datos del equipo desde la Hoja de Vida
+  const handleGuardarHojaVida = async (e) => {
+    if (e) e.preventDefault();
+    if (!equipoHojaVida) return;
+    setGuardandoHojaVida(true);
+    setErrorHojaVida('');
+    setMensajeHojaVida('');
+
+    try {
+      const res = await api.updateHojaVida(equipoHojaVida.id, formHojaVida);
+      setEquipoHojaVida(res.equipo);
+      setMensajeHojaVida('Hoja de Vida guardada exitosamente');
+      cargarDatos();
+      setTimeout(() => setMensajeHojaVida(''), 4000);
+    } catch (err) {
+      console.error('Error al guardar hoja de vida:', err);
+      setErrorHojaVida('Error al guardar cambios: ' + err.message);
+    } finally {
+      setGuardandoHojaVida(false);
+    }
+  };
+
+  // Agregar nueva acción/mantenimiento a la Hoja de Vida
+  const handleAgregarAccion = async (e) => {
+    if (e) e.preventDefault();
+    if (!equipoHojaVida) return;
+
+    const tipoFinal =
+      nuevaAccion.accion_realizada === 'OTRO'
+        ? nuevaAccion.accion_personalizada.trim()
+        : nuevaAccion.accion_realizada;
+
+    if (!tipoFinal) {
+      setErrorHojaVida('Por favor indica la acción realizada.');
+      return;
+    }
+    if (!nuevaAccion.procedimiento_realizado.trim()) {
+      setErrorHojaVida('Por favor describe el procedimiento realizado.');
+      return;
+    }
+
+    setGuardandoAccion(true);
+    setErrorHojaVida('');
+    setMensajeHojaVida('');
+
+    try {
+      const res = await api.agregarAccionHojaVida(equipoHojaVida.id, {
+        accion_realizada: tipoFinal,
+        fecha: nuevaAccion.fecha,
+        procedimiento_realizado: nuevaAccion.procedimiento_realizado.trim(),
+      });
+      setAccionesHojaVida((prev) => [...prev, res.accion]);
+      setNuevaAccion({
+        accion_realizada: 'MANTENIMIENTO PREVENTIVO',
+        accion_personalizada: '',
+        fecha: new Date().toISOString().slice(0, 10),
+        procedimiento_realizado: '',
+      });
+      setMensajeHojaVida('¡Intervención registrada con éxito en la Hoja de Vida!');
+      setTimeout(() => setMensajeHojaVida(''), 4000);
+    } catch (err) {
+      console.error('Error al registrar acción:', err);
+      setErrorHojaVida('Error al agregar acción: ' + err.message);
+    } finally {
+      setGuardandoAccion(false);
+    }
+  };
+
+  // Eliminar una acción de la Hoja de Vida
+  const handleEliminarAccion = async (accionId) => {
+    if (!confirm('¿Estás seguro de eliminar este registro de acción de la Hoja de Vida?')) return;
+    try {
+      await api.eliminarAccionHojaVida(equipoHojaVida.id, accionId);
+      setAccionesHojaVida((prev) => prev.filter((a) => a.id !== accionId));
+    } catch (err) {
+      alert('Error al eliminar acción: ' + err.message);
     }
   };
 
@@ -1320,7 +1491,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                     </>
                   ) : moduloActivo === 'devoluciones' ? (
                     <>
-                      <td><span className="placa-badge">{eq.placa}</span></td>
+                      <td><span className="placa-badge" onClick={() => handleAbrirHojaVida(eq)} style={{ cursor: 'pointer' }} title="Clic para abrir Hoja de Vida">{eq.placa}</span></td>
                       <td><b>{eq.tipo}</b></td>
                       <td><b>{eq.marca}</b> {eq.modelo}</td>
                       <td>
@@ -1333,7 +1504,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                     </>
                   ) : moduloActivo === 'prestamos' ? (
                     <>
-                      <td><span className="placa-badge">{eq.placa}</span></td>
+                      <td><span className="placa-badge" onClick={() => handleAbrirHojaVida(eq)} style={{ cursor: 'pointer' }} title="Clic para abrir Hoja de Vida">{eq.placa}</span></td>
                       <td><b>{eq.tipo}</b></td>
                       <td><b>{eq.marca}</b> {eq.modelo}</td>
                       <td>
@@ -1346,7 +1517,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                     </>
                   ) : moduloActivo === 'elementos' ? (
                     <>
-                      <td><span className="placa-badge">{eq.placa}</span></td>
+                      <td><span className="placa-badge" onClick={() => handleAbrirHojaVida(eq)} style={{ cursor: 'pointer' }} title="Clic para abrir Hoja de Vida">{eq.placa}</span></td>
                       <td><b>{eq.tipo}</b></td>
                       <td><b>{eq.marca}</b> <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{eq.modelo}</span></td>
                       <td><span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{eq.serial || '—'}</span></td>
@@ -1367,7 +1538,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                   ) : (
                     /* Celdas Estándar */
                     <>
-                      <td><span className="placa-badge">{eq.placa}</span></td>
+                      <td><span className="placa-badge" onClick={() => handleAbrirHojaVida(eq)} style={{ cursor: 'pointer' }} title="Clic para abrir Hoja de Vida">{eq.placa}</span></td>
                       <td>{eq.tipo}</td>
                       <td><b>{eq.marca}</b> <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{eq.modelo}</span></td>
                       <td><span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{eq.serial || '—'}</span></td>
@@ -1396,9 +1567,8 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
 
                       <button
                         className="btn-icon"
-                        title="📄 Descargar Hoja de Vida (.xlsx)"
-                        onClick={() => handleDescargarHojaVida(eq)}
-                        disabled={descargandoHJ === eq.id}
+                        title="📄 Hoja de Vida (Ver, Editar y Descargar)"
+                        onClick={() => handleAbrirHojaVida(eq)}
                         style={{ color: '#059669' }}
                       >
                         <FileTextIcon size={14} />
@@ -2142,6 +2312,508 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ventana Emergente de Hoja de Vida */}
+      {modalHojaVidaOpen && equipoHojaVida && (
+        <div className="modal-backdrop" onClick={() => setModalHojaVidaOpen(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '880px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Cabecera del Modal */}
+            <div className="modal-header" style={{ alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'rgba(5, 150, 105, 0.12)', padding: '10px', borderRadius: 'var(--radius)', color: '#059669', display: 'flex' }}>
+                  <FileTextIcon size={24} />
+                </div>
+                <div>
+                  <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>Hoja de Vida: {equipoHojaVida.placa || 'Sin Placa'}</span>
+                    <span className="badge badge-funcional" style={{ fontSize: '11px' }}>
+                      {equipoHojaVida.marca} {equipoHojaVida.modelo}
+                    </span>
+                    <span className={getStatusClass(equipoHojaVida.estado, equipoHojaVida.area, equipoHojaVida.categoria)} style={{ fontSize: '11px' }}>
+                      {equipoHojaVida.estado}
+                    </span>
+                  </h3>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Sede: <b>{equipoHojaVida.sede || 'Sin Sede'}</b> · Área: <b>{equipoHojaVida.area || 'Sin Área'}</b> · Serial: <b>{equipoHojaVida.serial || '—'}</b>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => handleDescargarHojaVida(equipoHojaVida)}
+                  disabled={descargandoHJ === equipoHojaVida.id}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '6px 12px' }}
+                  title="Descargar Hoja de Vida oficial FRMA-01 en Excel (.xlsx)"
+                >
+                  <DownloadIcon size={14} /> {descargandoHJ === equipoHojaVida.id ? 'Generando...' : 'Descargar Excel'}
+                </button>
+                <button className="btn-icon" onClick={() => setModalHojaVidaOpen(false)} title="Cerrar ventana">
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Pestañas de Navegación del Modal */}
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg-app)', padding: '0 16px' }}>
+              <button
+                type="button"
+                onClick={() => setTabHojaVida('datos')}
+                style={{
+                  padding: '10px 16px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  border: 'none',
+                  background: 'none',
+                  borderBottom: tabHojaVida === 'datos' ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: tabHojaVida === 'datos' ? 'var(--primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <EditIcon size={14} /> Ficha Técnica & Asignación
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabHojaVida('acciones')}
+                style={{
+                  padding: '10px 16px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  border: 'none',
+                  background: 'none',
+                  borderBottom: tabHojaVida === 'acciones' ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: tabHojaVida === 'acciones' ? 'var(--primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <ClockIcon size={14} /> Acciones y Mantenimientos ({accionesHojaVida.length})
+              </button>
+            </div>
+
+            {/* Mensajes de Notificación */}
+            {mensajeHojaVida && (
+              <div style={{ margin: '12px 18px 0 18px', padding: '10px 14px', background: 'rgba(16, 185, 129, 0.12)', color: '#065f46', borderRadius: 'var(--radius)', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckIcon size={15} color="#059669" /> {mensajeHojaVida}
+              </div>
+            )}
+            {errorHojaVida && (
+              <div style={{ margin: '12px 18px 0 18px', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.12)', color: '#991b1b', borderRadius: 'var(--radius)', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚠️</span> {errorHojaVida}
+              </div>
+            )}
+
+            {/* Cuerpo del Modal (Scrollable) */}
+            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '18px' }}>
+              {cargandoHojaVida ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                  Cargando datos de la Hoja de Vida...
+                </div>
+              ) : tabHojaVida === 'datos' ? (
+                /* TAB 1: Edición de Datos Técnicos y Asignación */
+                <form onSubmit={handleGuardarHojaVida}>
+                  {/* Bloque 1: Asignación y Ubicación */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
+                      1. Asignación, Responsable y Ubicación
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                      <div className="form-field-group">
+                        <label>Responsable Actual</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.responsable_nombre || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, responsable_nombre: e.target.value })}
+                          placeholder="Nombre del funcionario"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Cédula Responsable</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.cedula_responsable || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, cedula_responsable: e.target.value })}
+                          placeholder="Número de C.C."
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Cargo del Funcionario</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.cargo || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, cargo: e.target.value })}
+                          placeholder="Ej: Analista, Coordinador, Asesor"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Sede</label>
+                        <input
+                          type="text"
+                          list="lista-sedes-hj"
+                          value={formHojaVida.sede || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, sede: e.target.value })}
+                          placeholder="Sede de operación"
+                        />
+                        <datalist id="lista-sedes-hj">
+                          {Array.from(dynamicSedes).map((s) => (
+                            <option key={s} value={s} />
+                          ))}
+                        </datalist>
+                      </div>
+                      <div className="form-field-group">
+                        <label>Área / Departamento</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.area || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, area: e.target.value })}
+                          placeholder="Área o dependencia"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Código Interno</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.codigo_interno || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, codigo_interno: e.target.value })}
+                          placeholder="Código de inventario interno"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bloque 2: Ficha Técnica de Hardware */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
+                      2. Especificaciones Técnicas del Equipo
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                      <div className="form-field-group">
+                        <label>Placa del Activo</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.placa || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, placa: e.target.value })}
+                          placeholder="Número de Placa"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Tipo de Equipo</label>
+                        <select
+                          value={formHojaVida.tipo || 'Laptop'}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, tipo: e.target.value })}
+                        >
+                          {DEFAULT_TIPOS_EQUIPO.map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-field-group">
+                        <label>Marca</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.marca || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, marca: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Modelo</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.modelo || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, modelo: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Serial</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.serial || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, serial: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Board / Tarjeta Madre</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.board || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, board: e.target.value })}
+                          placeholder="Modelo de motherboard"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Procesador</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.procesador || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, procesador: e.target.value })}
+                          placeholder="Ej: Core i5-1135G7 @ 2.40GHz"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Memoria RAM</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.ram || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, ram: e.target.value })}
+                          placeholder="Ej: 8 GB DDR4, 16 GB"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Disco / Almacenamiento</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.almacenamiento || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, almacenamiento: e.target.value })}
+                          placeholder="Ej: 512 GB SSD NVMe"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Sistema Operativo</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.sistema_operativo || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, sistema_operativo: e.target.value })}
+                          placeholder="Ej: Windows 11 Pro 64-bit"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Dirección IP / Red</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.ip || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, ip: e.target.value })}
+                          placeholder="DHCP o IP fija"
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label>Estado Operativo</label>
+                        <select
+                          value={formHojaVida.estado || 'FUNCIONAL'}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, estado: e.target.value })}
+                        >
+                          <option value="FUNCIONAL">FUNCIONAL</option>
+                          <option value="REVISAR">REVISAR</option>
+                          <option value="DAÑADO">DAÑADO</option>
+                          <option value="DE_BAJA">DE_BAJA</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-field-group" style={{ marginTop: '12px' }}>
+                      <label>Software Instalado / Licencias (Listado que saldrá en la columna SOFTWARE del Excel)</label>
+                      <textarea
+                        rows="3"
+                        value={formHojaVida.software_instalado || ''}
+                        onChange={(e) => setFormHojaVida({ ...formHojaVida, software_instalado: e.target.value })}
+                        placeholder="Ejemplo:
+Microsoft Office 2021 LTSC
+Adobe Acrobat Reader DC
+Google Chrome / Mozilla Firefox
+Antivirus ESET Endpoint Security
+VPN FortiClient"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bloque 3: Observaciones */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
+                      3. Observaciones Generales
+                    </div>
+                    <div className="form-field-group">
+                      <textarea
+                        rows="2"
+                        value={formHojaVida.observaciones || ''}
+                        onChange={(e) => setFormHojaVida({ ...formHojaVida, observaciones: e.target.value })}
+                        placeholder="Observaciones de estado físico, accesorios o condición general del equipo..."
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={guardandoHojaVida}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <CheckIcon size={14} /> {guardandoHojaVida ? 'Guardando...' : 'Guardar Cambios de la Hoja de Vida'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* TAB 2: Historial de Acciones y Mantenimientos */
+                <div>
+                  {/* Formulario para Registrar Nueva Acción */}
+                  <div className="card" style={{ padding: '16px', marginBottom: '20px', background: 'var(--bg-app)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <PlusIcon size={16} color="var(--primary)" />
+                      <span>Registrar Acción, Mantenimiento o Actualización</span>
+                    </div>
+
+                    <form onSubmit={handleAgregarAccion}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                        <div className="form-field-group">
+                          <label>Acción Realizada *</label>
+                          <select
+                            value={nuevaAccion.accion_realizada}
+                            onChange={(e) => setNuevaAccion({ ...nuevaAccion, accion_realizada: e.target.value })}
+                          >
+                            <option value="MANTENIMIENTO PREVENTIVO">MANTENIMIENTO PREVENTIVO</option>
+                            <option value="MANTENIMIENTO CORRECTIVO">MANTENIMIENTO CORRECTIVO</option>
+                            <option value="ACTUALIZACIÓN DE HARDWARE">ACTUALIZACIÓN DE HARDWARE</option>
+                            <option value="ACTUALIZACIÓN DE SOFTWARE">ACTUALIZACIÓN DE SOFTWARE</option>
+                            <option value="FORMATEO / REINSTALACIÓN">FORMATEO / REINSTALACIÓN</option>
+                            <option value="CAMBIO DE CUSTODIA / ASIGNACIÓN">CAMBIO DE CUSTODIA / ASIGNACIÓN</option>
+                            <option value="REVISIÓN TÉCNICA / DIAGNÓSTICO">REVISIÓN TÉCNICA / DIAGNÓSTICO</option>
+                            <option value="ELABORACIÓN">ELABORACIÓN</option>
+                            <option value="OTRO">OTRO (Personalizado)</option>
+                          </select>
+                        </div>
+
+                        {nuevaAccion.accion_realizada === 'OTRO' && (
+                          <div className="form-field-group">
+                            <label>Escribe el Tipo de Acción *</label>
+                            <input
+                              type="text"
+                              required
+                              value={nuevaAccion.accion_personalizada}
+                              onChange={(e) => setNuevaAccion({ ...nuevaAccion, accion_personalizada: e.target.value })}
+                              placeholder="Ej: Cambio de batería"
+                            />
+                          </div>
+                        )}
+
+                        <div className="form-field-group">
+                          <label>Fecha de la Intervención *</label>
+                          <input
+                            type="date"
+                            required
+                            value={nuevaAccion.fecha}
+                            onChange={(e) => setNuevaAccion({ ...nuevaAccion, fecha: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-field-group" style={{ marginBottom: '14px' }}>
+                        <label>Procedimiento Realizado (Detalle de lo que se le hizo al equipo) *</label>
+                        <textarea
+                          required
+                          rows="3"
+                          value={nuevaAccion.procedimiento_realizado}
+                          onChange={(e) => setNuevaAccion({ ...nuevaAccion, procedimiento_realizado: e.target.value })}
+                          placeholder="Ejemplo: Se realiza limpieza interna de ventiladores, cambio de pasta térmica, actualización de drivers y escaneo antivirus..."
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          disabled={guardandoAccion}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <PlusIcon size={14} /> {guardandoAccion ? 'Registrando...' : 'Agregar Intervención'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Tabla de Intervenciones Registradas */}
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px' }}>
+                    Historial de Intervenciones Registradas ({accionesHojaVida.length})
+                  </div>
+
+                  {accionesHojaVida.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-app)', borderRadius: 'var(--radius)', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '13px' }}>
+                      No hay intervenciones o mantenimientos registrados aún para este equipo.
+                      <div style={{ fontSize: '11.5px', marginTop: '4px' }}>
+                        Al descargar la Hoja de Vida en Excel, se incluirá automáticamente la fila inicial de <b>ELABORACIÓN</b>.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                      <table className="table" style={{ margin: 0 }}>
+                        <thead>
+                          <tr>
+                            <th style={{ width: '220px' }}>Acción Realizada</th>
+                            <th style={{ width: '110px' }}>Fecha</th>
+                            <th>Procedimiento Realizado</th>
+                            <th style={{ width: '130px' }}>Registrado Por</th>
+                            <th style={{ width: '50px', textAlign: 'center' }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {accionesHojaVida.map((acc) => (
+                            <tr key={acc.id}>
+                              <td>
+                                <span className="badge badge-funcional" style={{ fontSize: '11px', fontWeight: 600 }}>
+                                  {acc.accion_realizada}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '12px' }}>
+                                {acc.fecha ? String(acc.fecha).slice(0, 10) : '—'}
+                              </td>
+                              <td style={{ fontSize: '12.5px', lineHeight: 1.4 }}>
+                                {acc.procedimiento_realizado}
+                              </td>
+                              <td style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                                {acc.realizado_por || 'Técnico'}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="btn-icon danger"
+                                  onClick={() => handleEliminarAccion(acc.id)}
+                                  title="Eliminar registro de acción"
+                                >
+                                  <TrashIcon size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Pie del Modal */}
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => handleDescargarHojaVida(equipoHojaVida)}
+                disabled={descargandoHJ === equipoHojaVida.id}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <DownloadIcon size={14} /> {descargandoHJ === equipoHojaVida.id ? 'Descargando...' : 'Descargar Hoja de Vida (.xlsx)'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setModalHojaVidaOpen(false)}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

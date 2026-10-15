@@ -58,7 +58,7 @@ function getTemplatePath() {
  * @param {Object} equipo - Datos completos del equipo
  * @returns {Promise<{ filePath: string, fileName: string, relativePath: string }>}
  */
-async function generarHojaDeVida(equipo) {
+async function generarHojaDeVida(equipo, acciones = []) {
   if (!equipo) {
     throw new Error('No se proporcionaron datos de equipo para generar la Hoja de Vida');
   }
@@ -85,9 +85,24 @@ async function generarHojaDeVida(equipo) {
   const sheetName = wb.Sheets['FRMA-01'] ? 'FRMA-01' : wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
 
+  // Limpiar celda A1 para eliminar el error de fórmula #VALUE! / #¡VALOR! nativo de la plantilla
+  if (ws['A1']) {
+    ws['A1'] = { t: 's', v: '' };
+  }
+
   // Preparar datos formateados
   const fechaHoy = new Date().toISOString().slice(0, 10);
-  const fechaOperacion = equipo.fecha_operacion ? String(equipo.fecha_operacion).slice(0, 10) : fechaHoy;
+  const formatFecha = (val, fallback = fechaHoy) => {
+    if (!val) return fallback;
+    if (val instanceof Date) {
+      const y = val.getFullYear();
+      const m = String(val.getMonth() + 1).padStart(2, '0');
+      const d = String(val.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(val).slice(0, 10);
+  };
+  const fechaOperacion = formatFecha(equipo.fecha_operacion, fechaHoy);
 
   let responsableTexto = 'Custodia / Almacén TI';
   if (equipo.responsable_nombre && equipo.responsable_nombre.trim() !== '') {
@@ -110,17 +125,26 @@ async function generarHojaDeVida(equipo) {
 
   // Mapeo exhaustivo en la hoja FRMA-01
   setCell(ws, 'C6', equipo.area || 'General / TI');
-  setCell(ws, 'I6', fechaOperacion);
+  setCell(ws, 'I6', fechaOperacion || fechaHoy);
   setCell(ws, 'C7', responsableTexto);
-  setCell(ws, 'I7', equipo.cargo || equipo.rol || 'Funcionario');
+  setCell(ws, 'I7', equipo.cargo || equipo.usuario_cargo || equipo.rol || 'Funcionario');
 
   setCell(ws, 'B9', isServidor ? 'X' : '');
   setCell(ws, 'D9', isDesktop ? 'X' : '');
   setCell(ws, 'E9', isLaptop ? 'X' : '');
-  setCell(ws, 'H9', equipo.placa || 'S/P');
+  setCell(ws, 'H9', equipo.codigo_interno || equipo.placa || 'S/P');
 
   setCell(ws, 'C10', equipo.marca || '');
   setCell(ws, 'I10', equipo.sistema_operativo || 'Windows 11 Pro');
+
+  // Mapear software adicional si existe
+  if (equipo.software_instalado && equipo.software_instalado.trim() !== '') {
+    const lineasSoftware = equipo.software_instalado.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    lineasSoftware.slice(0, 15).forEach((soft, sIdx) => {
+      setCell(ws, `I${11 + sIdx}`, soft);
+    });
+  }
+
   setCell(ws, 'C11', equipo.modelo || '');
   setCell(ws, 'C12', equipo.serial || '');
   setCell(ws, 'C13', equipo.board || equipo.modelo || 'OEM');
@@ -139,11 +163,22 @@ async function generarHojaDeVida(equipo) {
   setCell(ws, 'C24', equipo.usuario_asignado_email || equipo.email || '');
   setCell(ws, 'C25', `Sede: ${equipo.sede || 'N/A'}${equipo.area ? ' - ' + equipo.area : ''}`);
 
-  // Sección de Observaciones y Procedimiento
+  // Sección de Observaciones Generales
   setCell(ws, 'A38', equipo.observaciones || 'EQUIPO EN CONDICIONES OPERATIVAS');
-  setCell(ws, 'A40', 'ELABORACIÓN');
-  setCell(ws, 'C40', fechaHoy);
-  setCell(ws, 'E40', `REGISTRO DE ACTIVO TI - ESTADO: ${equipo.estado || 'FUNCIONAL'}`);
+
+  // Sección de Acciones e Intervenciones Realizadas (Filas 40 en adelante)
+  if (acciones && Array.isArray(acciones) && acciones.length > 0) {
+    acciones.slice(0, 4).forEach((acc, idx) => {
+      const rowNum = 40 + idx;
+      setCell(ws, `A${rowNum}`, (acc.accion_realizada || 'MANTENIMIENTO').toUpperCase());
+      setCell(ws, `C${rowNum}`, formatFecha(acc.fecha, fechaHoy));
+      setCell(ws, `E${rowNum}`, acc.procedimiento_realizado || '');
+    });
+  } else {
+    setCell(ws, 'A40', 'ELABORACIÓN');
+    setCell(ws, 'C40', fechaOperacion || fechaHoy);
+    setCell(ws, 'E40', `REGISTRO DE ACTIVO TI - ESTADO: ${equipo.estado || 'FUNCIONAL'}`);
+  }
 
   // Guardar archivo final .xlsx
   xlsx.writeFile(wb, targetFilePath, { bookType: 'xlsx' });

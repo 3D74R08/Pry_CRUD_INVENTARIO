@@ -9,6 +9,11 @@ router.get('/conteos', authenticateToken, equiposController.getConteosModulos);
 router.get('/resumen-asignaciones', authenticateToken, equiposController.getResumenAsignaciones);
 router.get('/:id', authenticateToken, equiposController.getEquipoById);
 router.get('/:id/hoja-de-vida', authenticateToken, equiposController.descargarHojaDeVida);
+router.get('/:id/hoja-de-vida/descargar', authenticateToken, equiposController.descargarHojaDeVida);
+router.get('/:id/hoja-de-vida/datos', authenticateToken, equiposController.getHojaVida);
+router.put('/:id/hoja-de-vida', authenticateToken, authorize(['ADMIN', 'TECNICO']), equiposController.updateHojaVida);
+router.post('/:id/hoja-de-vida/acciones', authenticateToken, authorize(['ADMIN', 'TECNICO']), equiposController.agregarAccionHojaVida);
+router.delete('/:id/hoja-de-vida/acciones/:accionId', authenticateToken, authorize(['ADMIN', 'TECNICO']), equiposController.eliminarAccionHojaVida);
 
 // Operaciones de modificación (ADMIN y TECNICO)
 router.post('/', authenticateToken, authorize(['ADMIN', 'TECNICO']), equiposController.createEquipo);

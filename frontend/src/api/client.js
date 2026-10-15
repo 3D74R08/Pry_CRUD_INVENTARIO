@@ -102,7 +102,7 @@ export const api = {
     }),
   descargarHojaDeVida: async (equipoId, placa) => {
     const token = localStorage.getItem('activos_ti_token');
-    const response = await fetch(`/api/equipos/${equipoId}/hoja-de-vida`, {
+    const response = await fetch(`/api/equipos/${equipoId}/hoja-de-vida/descargar`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) {
@@ -127,6 +127,21 @@ export const api = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+  getHojaVidaDatos: (id) => request(`/equipos/${id}/hoja-de-vida/datos`),
+  updateHojaVida: (id, data) =>
+    request(`/equipos/${id}/hoja-de-vida`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  agregarAccionHojaVida: (id, data) =>
+    request(`/equipos/${id}/hoja-de-vida/acciones`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  eliminarAccionHojaVida: (id, accionId) =>
+    request(`/equipos/${id}/hoja-de-vida/acciones/${accionId}`, {
+      method: 'DELETE',
+    }),
 
   // Eventos de Trazabilidad y Dashboard
   getEventos: (params = {}) => {

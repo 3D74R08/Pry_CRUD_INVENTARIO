@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS equipos (
     board VARCHAR(100),
     acronis VARCHAR(50),
     glpi VARCHAR(50),
+    cargo VARCHAR(100),
+    codigo_interno VARCHAR(100),
+    software_instalado TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -90,6 +93,19 @@ CREATE TABLE IF NOT EXISTS eventos_inventario (
 
 CREATE INDEX IF NOT EXISTS idx_eventos_equipo_id ON eventos_inventario(equipo_id);
 CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos_inventario(fecha_evento DESC);
+
+-- 3.1 Tabla de Acciones e Intervenciones de Hoja de Vida
+CREATE TABLE IF NOT EXISTS hoja_vida_acciones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    equipo_id UUID NOT NULL REFERENCES equipos(id) ON DELETE CASCADE,
+    accion_realizada VARCHAR(150) NOT NULL,
+    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    procedimiento_realizado TEXT NOT NULL,
+    realizado_por VARCHAR(150),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_hoja_vida_acciones_equipo ON hoja_vida_acciones(equipo_id, fecha ASC);
 
 -- 4. Tabla de Orquestación Asíncrona: tareas_worker
 CREATE TABLE IF NOT EXISTS tareas_worker (

@@ -717,6 +717,220 @@ async function getResumenAsignaciones(req, res) {
 }
 
 // Descargar Hoja de Vida en formato oficial .xlsx
+// Obtener información detallada y acciones de la Hoja de Vida de un equipo
+async function getHojaVida(req, res) {
+  try {
+    const { id } = req.params;
+
+    const result = await db.query(
+      `SELECT 
+        e.*,
+        u.nombre_completo as usuario_asignado_nombre,
+        u.email as usuario_asignado_email,
+        u.cargo as usuario_cargo,
+        u.rol as usuario_rol
+      FROM equipos e
+      LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id
+      WHERE e.id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
+
+    const equipo = result.rows[0];
+
+    const accionesRes = await db.query(
+      `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
+      [id]
+    );
+
+    return res.json({
+      equipo,
+      acciones: accionesRes.rows,
+    });
+  } catch (error) {
+    console.error('[Equipos] Error al obtener datos de hoja de vida:', error);
+    return res.status(500).json({ error: 'Error al consultar la hoja de vida' });
+  }
+}
+
+// Agregar una acción o mantenimiento a la Hoja de Vida
+async function agregarAccionHojaVida(req, res) {
+  try {
+    const { id } = req.params;
+    const { accion_realizada, fecha, procedimiento_realizado } = req.body;
+
+    if (!accion_realizada || !procedimiento_realizado) {
+      return res.status(400).json({ error: 'Acción realizada y procedimiento son obligatorios' });
+    }
+
+    const fechaAccion = fecha ? String(fecha).slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const realizadoPor = req.user.nombre_completo || req.user.email || 'Admin';
+
+    const insertRes = await db.query(
+      `INSERT INTO hoja_vida_acciones (equipo_id, accion_realizada, fecha, procedimiento_realizado, realizado_por)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [id, accion_realizada.trim(), fechaAccion, procedimiento_realizado.trim(), realizadoPor]
+    );
+
+    // Auditoría en eventos_inventario
+    try {
+      await db.query(
+        `INSERT INTO eventos_inventario (equipo_id, usuario_id, tipo_evento, descripcion, detalles)
+         VALUES ($1, $2, 'MANTENIMIENTO', $3, $4)`,
+        [
+          id,
+          req.user.id,
+          `Hoja de Vida: ${accion_realizada.trim()} - ${procedimiento_realizado.trim()}`,
+          JSON.stringify({ accion: insertRes.rows[0] }),
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('[Equipos] Error al registrar evento de mantenimiento:', auditErr);
+    }
+
+    return res.status(201).json({
+      message: 'Acción registrada con éxito en la Hoja de Vida',
+      accion: insertRes.rows[0],
+    });
+  } catch (error) {
+    console.error('[Equipos] Error al registrar acción en hoja de vida:', error);
+    return res.status(500).json({ error: 'Error al registrar acción en hoja de vida' });
+  }
+}
+
+// Eliminar una acción o mantenimiento de la Hoja de Vida
+async function eliminarAccionHojaVida(req, res) {
+  try {
+    const { id, accionId } = req.params;
+
+    const result = await db.query(
+      `DELETE FROM hoja_vida_acciones WHERE id = $1 AND equipo_id = $2 RETURNING *`,
+      [accionId, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Acción no encontrada' });
+    }
+
+    return res.json({ message: 'Acción eliminada correctamente' });
+  } catch (error) {
+    console.error('[Equipos] Error al eliminar acción de hoja de vida:', error);
+    return res.status(500).json({ error: 'Error al eliminar acción' });
+  }
+}
+
+// Actualizar información técnica y de asignación desde la Hoja de Vida
+async function updateHojaVida(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      responsable_nombre,
+      cedula_responsable,
+      cargo,
+      sede,
+      area,
+      codigo_interno,
+      placa,
+      tipo,
+      marca,
+      modelo,
+      serial,
+      board,
+      procesador,
+      ram,
+      almacenamiento,
+      sistema_operativo,
+      software_instalado,
+      ip,
+      observaciones,
+      estado,
+    } = req.body;
+
+    const updateQuery = `
+      UPDATE equipos SET
+        responsable_nombre = COALESCE($1, responsable_nombre),
+        cedula_responsable = COALESCE($2, cedula_responsable),
+        cargo = COALESCE($3, cargo),
+        sede = COALESCE($4, sede),
+        area = COALESCE($5, area),
+        codigo_interno = COALESCE($6, codigo_interno),
+        placa = COALESCE($7, placa),
+        tipo = COALESCE($8, tipo),
+        marca = COALESCE($9, marca),
+        modelo = COALESCE($10, modelo),
+        serial = COALESCE($11, serial),
+        board = COALESCE($12, board),
+        procesador = COALESCE($13, procesador),
+        ram = COALESCE($14, ram),
+        almacenamiento = COALESCE($15, almacenamiento),
+        sistema_operativo = COALESCE($16, sistema_operativo),
+        software_instalado = COALESCE($17, software_instalado),
+        ip = COALESCE($18, ip),
+        observaciones = COALESCE($19, observaciones),
+        estado = COALESCE($20, estado),
+        updated_at = NOW()
+      WHERE id = $21
+      RETURNING *;
+    `;
+
+    const values = [
+      responsable_nombre !== undefined ? responsable_nombre : null,
+      cedula_responsable !== undefined ? cedula_responsable : null,
+      cargo !== undefined ? cargo : null,
+      sede !== undefined ? sede : null,
+      area !== undefined ? area : null,
+      codigo_interno !== undefined ? codigo_interno : null,
+      placa !== undefined ? (placa ? placa.trim() : null) : null,
+      tipo !== undefined ? tipo : null,
+      marca !== undefined ? (marca ? marca.trim() : null) : null,
+      modelo !== undefined ? modelo : null,
+      serial !== undefined ? serial : null,
+      board !== undefined ? board : null,
+      procesador !== undefined ? procesador : null,
+      ram !== undefined ? ram : null,
+      almacenamiento !== undefined ? almacenamiento : null,
+      sistema_operativo !== undefined ? sistema_operativo : null,
+      software_instalado !== undefined ? software_instalado : null,
+      ip !== undefined ? ip : null,
+      observaciones !== undefined ? observaciones : null,
+      estado !== undefined ? estado : null,
+      id,
+    ];
+
+    const result = await db.query(updateQuery, values);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
+
+    const updatedEquipo = result.rows[0];
+
+    // Registrar evento de actualización
+    await db.query(
+      `INSERT INTO eventos_inventario (equipo_id, usuario_id, tipo_evento, descripcion, detalles)
+       VALUES ($1, $2, 'CAMBIO_ESTADO', $3, $4)`,
+      [
+        id,
+        req.user.id,
+        `Edición de Hoja de Vida del equipo ${updatedEquipo.placa}`,
+        JSON.stringify({ updatedFields: req.body }),
+      ]
+    );
+
+    return res.json({
+      message: 'Hoja de Vida actualizada correctamente',
+      equipo: updatedEquipo,
+    });
+  } catch (error) {
+    console.error('[Equipos] Error al actualizar hoja de vida:', error);
+    return res.status(500).json({ error: 'Error al actualizar los datos de la hoja de vida' });
+  }
+}
+
+// Descargar Hoja de Vida en formato oficial .xlsx
 async function descargarHojaDeVida(req, res) {
   try {
     const { id } = req.params;
@@ -749,7 +963,13 @@ async function descargarHojaDeVida(req, res) {
       }
     }
 
-    const archivoGenerado = await hojaDeVidaService.generarHojaDeVida(equipo);
+    // Consultar las acciones registradas para este equipo
+    const accionesRes = await db.query(
+      `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
+      [id]
+    );
+
+    const archivoGenerado = await hojaDeVidaService.generarHojaDeVida(equipo, accionesRes.rows);
 
     return res.download(archivoGenerado.filePath, archivoGenerado.fileName, (err) => {
       if (err && !res.headersSent) {
@@ -776,5 +996,9 @@ module.exports = {
   registrarDevolucion,
   reportarFallo,
   descargarHojaDeVida,
+  getHojaVida,
+  agregarAccionHojaVida,
+  eliminarAccionHojaVida,
+  updateHojaVida,
 };
 
