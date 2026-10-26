@@ -1,9 +1,9 @@
 # ============================================================
-# Dockerfile: Frontend SPA (React 19 + Vite + Nginx) - Multi-Stage
+# Dockerfile: Frontend SPA (React 19 + Vite 8 + Nginx) - Multi-Stage
 # ============================================================
 
 # Etapa 1: Build de la aplicación React
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
