@@ -9,6 +9,7 @@ router.get('/conteos', authenticateToken, equiposController.getConteosModulos);
 router.get('/resumen-asignaciones', authenticateToken, equiposController.getResumenAsignaciones);
 router.get('/:id', authenticateToken, equiposController.getEquipoById);
 router.get('/:id/acta-entrega', authenticateToken, equiposController.descargarActaEntrega);
+router.post('/:id/acta-entrega', authenticateToken, equiposController.descargarActaEntrega);
 router.get('/:id/hoja-de-vida', authenticateToken, equiposController.descargarHojaDeVida);
 router.get('/:id/hoja-de-vida/descargar', authenticateToken, equiposController.descargarHojaDeVida);
 router.get('/:id/hoja-de-vida/datos', authenticateToken, equiposController.getHojaVida);

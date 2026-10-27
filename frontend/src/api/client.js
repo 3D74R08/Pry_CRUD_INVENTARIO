@@ -127,10 +127,17 @@ export const api = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
-  descargarActaEntrega: async (equipoId, placa) => {
+  descargarActaEntrega: async (equipoId, placa, opcionesFirmas = {}) => {
     const token = localStorage.getItem('activos_ti_token');
+    const hasFirmas = Boolean(opcionesFirmas && (opcionesFirmas.firmaEntrega || opcionesFirmas.firmaRecibe));
+
     const response = await fetch(`/api/equipos/${equipoId}/acta-entrega`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      method: hasFirmas ? 'POST' : 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(hasFirmas ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(hasFirmas ? { body: JSON.stringify(opcionesFirmas) } : {}),
     });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));

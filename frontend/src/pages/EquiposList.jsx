@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import HistorialModal from './HistorialModal';
 import Pagination from '../components/Pagination';
 import SelectOrCustomInput from '../components/SelectOrCustomInput';
+import ModalFirmaActa from '../components/ModalFirmaActa';
 import {
   MonitorIcon,
   UsersIcon,
@@ -469,6 +470,10 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   const [descargandoHJ, setDescargandoHJ] = useState(null);
   const [descargandoActa, setDescargandoActa] = useState(null);
 
+  // Estados para Modal de Firma y Descarga de Acta de Entrega
+  const [modalFirmaActaOpen, setModalFirmaActaOpen] = useState(false);
+  const [equipoParaActa, setEquipoParaActa] = useState(null);
+
   // Estados para Ventana Emergente de Hoja de Vida
   const [modalHojaVidaOpen, setModalHojaVidaOpen] = useState(false);
   const [equipoHojaVida, setEquipoHojaVida] = useState(null);
@@ -895,16 +900,10 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   };
 
   // Descargar Acta de Entrega oficial (.docx)
-  const handleDescargarActaEntrega = async (eq) => {
-    try {
-      setDescargandoActa(eq.id);
-      await api.descargarActaEntrega(eq.id, eq.placa || eq.codigo_interno);
-    } catch (err) {
-      console.error('Error al descargar acta de entrega:', err);
-      alert('No se pudo generar/descargar el Acta de Entrega: ' + err.message);
-    } finally {
-      setDescargandoActa(null);
-    }
+  const handleDescargarActaEntrega = (eq) => {
+    if (!eq) return;
+    setEquipoParaActa(eq);
+    setModalFirmaActaOpen(true);
   };
 
   // Abrir ventana emergente de Hoja de Vida
@@ -922,6 +921,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       marca: eq.marca || '',
       modelo: eq.modelo || '',
       serial: eq.serial || '',
+      color: eq.color || '',
       board: eq.board || '',
       procesador: eq.procesador || '',
       ram: eq.ram || '',
@@ -961,6 +961,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
           marca: res.equipo.marca || '',
           modelo: res.equipo.modelo || '',
           serial: res.equipo.serial || '',
+          color: res.equipo.color || '',
           board: res.equipo.board || '',
           procesador: res.equipo.procesador || '',
           ram: res.equipo.ram || '',
@@ -1589,6 +1590,15 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                         style={{ color: '#059669' }}
                       >
                         <FileTextIcon size={14} />
+                      </button>
+
+                      <button
+                        className="btn-icon"
+                        title="📝 Descargar Acta de Entrega con Firmas (.docx)"
+                        onClick={() => handleDescargarActaEntrega(eq)}
+                        style={{ color: '#0284c7' }}
+                      >
+                        <DownloadIcon size={14} />
                       </button>
 
                       {eq.estado !== 'DE_BAJA' && moduloActivo !== 'bajas' && (
@@ -2583,6 +2593,15 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                         />
                       </div>
                       <div className="form-field-group">
+                        <label>Color del Activo</label>
+                        <input
+                          type="text"
+                          value={formHojaVida.color || ''}
+                          onChange={(e) => setFormHojaVida({ ...formHojaVida, color: e.target.value })}
+                          placeholder="Ej: Negro, Gris espacial, Plateado"
+                        />
+                      </div>
+                      <div className="form-field-group">
                         <label>Board / Tarjeta Madre</label>
                         <input
                           type="text"
@@ -2879,6 +2898,16 @@ VPN FortiClient"
           </div>
         </div>
       )}
+
+      {/* Modal de Firma y Descarga de Acta de Entrega */}
+      <ModalFirmaActa
+        isOpen={modalFirmaActaOpen}
+        onClose={() => {
+          setModalFirmaActaOpen(false);
+          setEquipoParaActa(null);
+        }}
+        equipo={equipoParaActa}
+      />
     </div>
   );
 }

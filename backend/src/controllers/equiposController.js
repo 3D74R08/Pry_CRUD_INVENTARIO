@@ -912,6 +912,7 @@ async function updateHojaVida(req, res) {
       sistema_operativo,
       software_instalado,
       accesorios,
+      color,
       ip,
       observaciones,
       estado,
@@ -937,11 +938,12 @@ async function updateHojaVida(req, res) {
         sistema_operativo = COALESCE($16, sistema_operativo),
         software_instalado = COALESCE($17, software_instalado),
         accesorios = COALESCE($18, accesorios),
-        ip = COALESCE($19, ip),
-        observaciones = COALESCE($20, observaciones),
-        estado = COALESCE($21, estado),
+        color = COALESCE($19, color),
+        ip = COALESCE($20, ip),
+        observaciones = COALESCE($21, observaciones),
+        estado = COALESCE($22, estado),
         updated_at = NOW()
-      WHERE id = $22
+      WHERE id = $23
       RETURNING *;
     `;
 
@@ -964,6 +966,7 @@ async function updateHojaVida(req, res) {
       sistema_operativo !== undefined ? sistema_operativo : null,
       software_instalado !== undefined ? software_instalado : null,
       accesorios !== undefined ? accesorios : null,
+      color !== undefined ? color : null,
       ip !== undefined ? ip : null,
       observaciones !== undefined ? observaciones : null,
       estado !== undefined ? estado : null,
@@ -1070,6 +1073,8 @@ async function descargarActaEntrega(req, res) {
   try {
     const { id } = req.params;
     const { rol, cedula, id: userId, nombre_completo: usuarioNombre } = req.user;
+    const firmaEntrega = req.body?.firmaEntrega || req.query?.firmaEntrega;
+    const firmaRecibe = req.body?.firmaRecibe || req.query?.firmaRecibe;
 
     const result = await db.query(
       `SELECT 
@@ -1100,6 +1105,8 @@ async function descargarActaEntrega(req, res) {
 
     const archivoGenerado = await actaEntregaService.generarActaEntrega(equipo, {
       usuarioEntrega: usuarioNombre || 'Coordinación de Tecnología e Información (TI)',
+      firmaEntrega,
+      firmaRecibe,
     });
 
     return res.download(archivoGenerado.filePath, archivoGenerado.fileName, (err) => {

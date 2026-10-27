@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { UsersIcon, BuildingIcon, MapPinIcon, PlusIcon, RotateCcwIcon, XIcon, FileTextIcon } from '../components/Icons';
+import ModalFirmaActa from '../components/ModalFirmaActa';
 
 export default function Asignaciones() {
   const [modo, setModo] = useState('colaborador'); // 'colaborador' | 'area' | 'sede'
@@ -22,6 +23,10 @@ export default function Asignaciones() {
   const [equiposDisponibles, setEquiposDisponibles] = useState([]);
   const [selectedEquipoId, setSelectedEquipoId] = useState('');
   const [descargandoActaId, setDescargandoActaId] = useState(null);
+
+  // Modal de Firma y Descarga de Acta
+  const [modalFirmaActaOpen, setModalFirmaActaOpen] = useState(false);
+  const [equipoParaActa, setEquipoParaActa] = useState(null);
 
   useEffect(() => {
     cargarDatosIniciales();
@@ -159,6 +164,7 @@ export default function Asignaciones() {
       }
 
       const eqAsignadoId = selectedEquipoId;
+      const eqAsignadoObj = equiposDisponibles.find((x) => x.id === eqAsignadoId);
       await api.updateEquipo(eqAsignadoId, updatePayload);
       setModalAsignarOpen(false);
       
@@ -167,31 +173,25 @@ export default function Asignaciones() {
       else if (modo === 'area') seleccionarArea(selectedArea);
       else if (modo === 'sede') seleccionarSede(selectedSede);
 
-      // Ofrecer descarga inmediata del Acta de Entrega oficial
-      const descargarAhora = window.confirm(
-        '¡Asignación guardada con éxito!\n\n¿Deseas descargar el Acta de Entrega oficial en formato Word (.docx) para firma del colaborador ahora mismo?'
-      );
-      if (descargarAhora) {
-        api.descargarActaEntrega(eqAsignadoId).catch((err) => {
-          console.error('Error al descargar acta tras asignación:', err);
-          alert('Error al descargar el Acta: ' + err.message);
+      // Abrir modal de firmas para el Acta de Entrega oficial
+      if (eqAsignadoObj) {
+        setEquipoParaActa({
+          ...eqAsignadoObj,
+          ...updatePayload,
+          responsable_nombre: updatePayload.responsable_nombre || selectedUser?.nombre_completo,
+          cedula_responsable: updatePayload.cedula_responsable || selectedUser?.cedula,
+          cargo: updatePayload.cargo || selectedUser?.cargo,
         });
+        setModalFirmaActaOpen(true);
       }
     } catch (err) {
       alert('Error al asignar equipo: ' + err.message);
     }
   };
 
-  const handleDescargarActa = async (eq) => {
-    try {
-      setDescargandoActaId(eq.id);
-      await api.descargarActaEntrega(eq.id, eq.placa || eq.codigo_interno);
-    } catch (err) {
-      console.error('Error al descargar acta de entrega:', err);
-      alert('Error al descargar el Acta de Entrega: ' + err.message);
-    } finally {
-      setDescargandoActaId(null);
-    }
+  const handleDescargarActa = (eq) => {
+    setEquipoParaActa(eq);
+    setModalFirmaActaOpen(true);
   };
 
   const handleDesasignar = async (eq) => {
@@ -571,6 +571,16 @@ export default function Asignaciones() {
           </div>
         </div>
       )}
+
+      {/* Modal de Firmas Digitales y Descarga de Acta */}
+      <ModalFirmaActa
+        isOpen={modalFirmaActaOpen}
+        onClose={() => {
+          setModalFirmaActaOpen(false);
+          setEquipoParaActa(null);
+        }}
+        equipo={equipoParaActa}
+      />
     </div>
   );
 }
