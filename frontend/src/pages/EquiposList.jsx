@@ -426,6 +426,7 @@ const INITIAL_FORM = {
   responsable_nombre: '',
   fecha_mantenimiento: '',
   observaciones: '',
+  accesorios: '',
   categoria: 'EQUIPOS_PRESTAMOS',
   modalidad: 'PROPIO',
   fecha_operacion: '',
@@ -927,6 +928,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       almacenamiento: eq.almacenamiento || '',
       sistema_operativo: eq.sistema_operativo || 'Windows 11 Pro',
       software_instalado: eq.software_instalado || '',
+      accesorios: eq.accesorios || '',
       ip: eq.ip || 'DHCP',
       observaciones: eq.observaciones || '',
       estado: eq.estado || 'FUNCIONAL',
@@ -965,6 +967,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
           almacenamiento: res.equipo.almacenamiento || '',
           sistema_operativo: res.equipo.sistema_operativo || 'Windows 11 Pro',
           software_instalado: res.equipo.software_instalado || '',
+          accesorios: res.equipo.accesorios || '',
           ip: res.equipo.ip || 'DHCP',
           observaciones: res.equipo.observaciones || '',
           estado: res.equipo.estado || 'FUNCIONAL',
@@ -1977,21 +1980,31 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                   </>
                 )}
 
-                {/* 4. Observaciones */}
+                {/* 4. Observaciones y Accesorios */}
                 <div className="form-section-header">
                   <FileTextIcon size={15} color="#38bdf8" />
                   <span>Observaciones y Accesorios</span>
                 </div>
 
+                <div className="form-field-group full-width" style={{ marginBottom: '10px' }}>
+                  <label>Accesorios Entregados (Opcional, para Acta de Entrega)</label>
+                  <input
+                    type="text"
+                    value={formData.accesorios || ''}
+                    onChange={(e) => setFormData({ ...formData, accesorios: e.target.value })}
+                    placeholder="Ej. Cargador original, Mouse, Maletín (dejar vacío si no aplica)..."
+                  />
+                </div>
+
                 <div className="form-field-group full-width">
                   <label>
-                    {moduloActivo === 'bajas' ? 'Motivo Detallado de Baja / Daño Reportado *' : 'Observaciones y Accesorios'}
+                    {moduloActivo === 'bajas' ? 'Motivo Detallado de Baja / Daño Reportado *' : 'Observaciones Generales'}
                   </label>
                   <textarea
                     rows="3"
                     value={formData.observaciones}
                     onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                    placeholder={moduloActivo === 'bajas' ? 'Describir la falla irreparable...' : 'Cargador, mouse, base, observaciones generales...'}
+                    placeholder={moduloActivo === 'bajas' ? 'Describir la falla irreparable...' : 'Observaciones generales del equipo...'}
                   />
                 </div>
               </div>
@@ -2653,17 +2666,29 @@ VPN FortiClient"
                     </div>
                   </div>
 
-                  {/* Bloque 3: Observaciones */}
+                  {/* Bloque 3: Accesorios y Observaciones */}
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
-                      3. Observaciones Generales
+                      3. Accesorios y Observaciones Generales
+                    </div>
+                    <div className="form-field-group" style={{ marginBottom: '10px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Accesorios Entregados (para Acta de Entrega)</label>
+                      <input
+                        type="text"
+                        className="select-filter"
+                        style={{ width: '100%' }}
+                        value={formHojaVida.accesorios || ''}
+                        onChange={(e) => setFormHojaVida({ ...formHojaVida, accesorios: e.target.value })}
+                        placeholder="Ej. Cargador original, Mouse, Maletín (dejar vacío si no aplica)..."
+                      />
                     </div>
                     <div className="form-field-group">
+                      <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Observaciones Generales</label>
                       <textarea
                         rows="2"
                         value={formHojaVida.observaciones || ''}
                         onChange={(e) => setFormHojaVida({ ...formHojaVida, observaciones: e.target.value })}
-                        placeholder="Observaciones de estado físico, accesorios o condición general del equipo..."
+                        placeholder="Observaciones de estado físico o condición general del equipo..."
                       />
                     </div>
                   </div>

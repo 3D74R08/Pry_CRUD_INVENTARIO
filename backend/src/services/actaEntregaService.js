@@ -20,41 +20,15 @@ function escapeXml(unsafe) {
     .replace(/'/g, '&apos;');
 }
 
-// Obtener accesorios por defecto según la tipología del equipo
-function getAccesoriosPorTipo(tipo, observaciones = '') {
-  const t = (tipo || '').toLowerCase();
-  if (t.includes('laptop') || t.includes('portatil') || t.includes('portátil')) {
-    return 'Cargador original / Adaptador AC, Mouse óptico, Maletín / Funda de transporte.';
-  }
-  if (t.includes('desktop') || t.includes('mesa') || t.includes('torre') || t.includes('computador')) {
-    return 'Cable de poder, Cable de video (HDMI/VGA/DisplayPort), Teclado, Mouse óptico.';
-  }
-  if (t.includes('todo en uno') || t.includes('all in one') || t.includes('aio')) {
-    return 'Adaptador de corriente / Cable de poder, Teclado, Mouse óptico.';
-  }
-  if (t.includes('impresora')) {
-    return 'Cable de poder, Cable USB de datos.';
-  }
-  if (t.includes('tablet') || t.includes('tableta')) {
-    return 'Cargador, Cable de datos USB, Funda de protección.';
-  }
-  if (t.includes('pantalla') || t.includes('monitor')) {
-    return 'Cable de poder / Adaptador, Cable de video (HDMI/DisplayPort).';
-  }
-  if (t.includes('ups')) {
-    return 'Cable de alimentación eléctrica principal.';
-  }
-  return 'Cable de alimentación y accesorios estándar según entrega.';
-}
-
-// Obtener estado legible en el documento
-function getEstadoLegible(estado) {
-  const e = (estado || '').toUpperCase();
-  if (e === 'FUNCIONAL') return 'BUENO / OPERATIVO';
-  if (e === 'REVISAR') return 'EN REVISIÓN / OPERATIVO';
-  if (e === 'DAÑADO') return 'DAÑADO / REQUIERE MANTENIMIENTO';
-  if (e === 'DE_BAJA') return 'DE BAJA';
-  return e || 'BUENO / OPERATIVO';
+// Obtener el estado tal como se maneja en el inventario
+function getEstadoInventario(estado) {
+  if (!estado) return 'Funcional';
+  const e = String(estado).trim().toUpperCase();
+  if (e === 'FUNCIONAL') return 'Funcional';
+  if (e === 'REVISAR' || e === 'EN REVISIÓN' || e === 'EN REVISION' || e === 'A REVISAR') return 'En Revisión';
+  if (e === 'DAÑADO' || e === 'DANADO') return 'Dañado';
+  if (e === 'DE_BAJA' || e === 'DE BAJA') return 'De Baja';
+  return estado;
 }
 
 /**
@@ -124,33 +98,17 @@ async function generarActaEntrega(equipo, opciones = {}) {
   }`;
 
   const placaDisplay = equipo.placa || equipo.codigo_interno || 'S/P';
-  const asuntoStr = `Acta de Entrega de Activo TI - Placa: ${placaDisplay}`;
+  const asuntoStr = 'Acta de entrega del activo';
   const tipoStr = (equipo.tipo || 'COMPUTADOR').toUpperCase();
   const marcaStr = (equipo.marca || 'N/A').toUpperCase();
   const colorStr = equipo.color || 'Gris / Negro';
-  const accesoriosStr = opciones.accesorios || getAccesoriosPorTipo(equipo.tipo, equipo.observaciones);
+  const accesoriosStr = (equipo.accesorios || opciones.accesorios || '').trim() || 'N/A';
   const serialStr = equipo.serial || 'N/A';
   const modeloStr = equipo.modelo || 'N/A';
-  const estadoStr = getEstadoLegible(equipo.estado);
+  const estadoStr = getEstadoInventario(equipo.estado);
 
-  // Especificaciones técnicas estructuradas para el bloque de OBSERVACIONES
-  const specs = [];
-  if (equipo.codigo_interno) specs.push(`Cód. Interno: ${equipo.codigo_interno}`);
-  if (equipo.procesador) specs.push(`Procesador: ${equipo.procesador}`);
-  if (equipo.ram) specs.push(`RAM: ${equipo.ram}`);
-  if (equipo.almacenamiento) specs.push(`Disco: ${equipo.almacenamiento}`);
-  if (equipo.sistema_operativo) specs.push(`SO: ${equipo.sistema_operativo}`);
-  if (equipo.sede) specs.push(`Sede: ${equipo.sede}`);
-  if (equipo.area) specs.push(`Área: ${equipo.area}`);
-  if (equipo.cargo) specs.push(`Cargo: ${equipo.cargo}`);
-  if (equipo.software_instalado) specs.push(`Software: ${equipo.software_instalado}`);
-
-  let obsFinal = specs.join(' | ');
-  const obsDetalle = (opciones.observacionesExtra || equipo.observaciones || '').trim();
-  if (obsDetalle) {
-    obsFinal += (obsFinal ? ' — Detalle: ' : '') + obsDetalle;
-  }
-  if (!obsFinal) obsFinal = 'Ninguna.';
+  // Observaciones generales tal como se ingresaron en el inventario
+  const obsFinal = (equipo.observaciones || '').trim() || 'Ninguna';
 
   const entregaNombre = opciones.usuarioEntrega || 'Coordinación de Tecnología e Información (TI)';
   const recibeNombre = equipo.responsable_nombre || 'Colaborador Asignado';

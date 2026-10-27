@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS equipos (
     cargo VARCHAR(100),
     codigo_interno VARCHAR(100),
     software_instalado TEXT,
+    accesorios TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
