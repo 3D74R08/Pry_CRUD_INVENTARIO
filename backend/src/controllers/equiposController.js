@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const hojaDeVidaService = require('../services/hojaDeVidaService');
+const actaEntregaService = require('../services/actaEntregaService');
 
 // Obtener listado de equipos con filtros y control de acceso RBAC
 async function getEquipos(req, res) {
@@ -1048,6 +1049,55 @@ async function descargarHojaDeVida(req, res) {
   }
 }
 
+// Descargar Acta de Entrega en formato Word (.docx)
+async function descargarActaEntrega(req, res) {
+  try {
+    const { id } = req.params;
+    const { rol, cedula, id: userId, nombre_completo: usuarioNombre } = req.user;
+
+    const result = await db.query(
+      `SELECT 
+        e.*,
+        u.nombre_completo as usuario_asignado_nombre,
+        u.email as usuario_asignado_email,
+        u.cargo as usuario_cargo,
+        u.rol as usuario_rol
+      FROM equipos e
+      LEFT JOIN usuarios u ON e.usuario_asignado_id = u.id
+      WHERE e.id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipo no encontrado' });
+    }
+
+    const equipo = result.rows[0];
+
+    // Validación RBAC si es empleado: solo puede descargar su propio equipo asignado
+    if (rol === 'EMPLEADO') {
+      const isOwner = equipo.cedula_responsable === cedula || equipo.usuario_asignado_id === userId;
+      if (!isOwner) {
+        return res.status(403).json({ error: 'No tienes permiso para descargar el acta de entrega de este equipo' });
+      }
+    }
+
+    const archivoGenerado = await actaEntregaService.generarActaEntrega(equipo, {
+      usuarioEntrega: usuarioNombre || 'Coordinación de Tecnología e Información (TI)',
+    });
+
+    return res.download(archivoGenerado.filePath, archivoGenerado.fileName, (err) => {
+      if (err && !res.headersSent) {
+        console.error('[Equipos] Error al enviar acta de entrega:', err);
+        return res.status(500).json({ error: 'Error al descargar el Acta de Entrega' });
+      }
+    });
+  } catch (error) {
+    console.error('[Equipos] Error al generar Acta de Entrega:', error);
+    return res.status(500).json({ error: 'Error al generar el Acta de Entrega: ' + error.message });
+  }
+}
+
 module.exports = {
   getEquipos,
   getEquipoById,
@@ -1061,6 +1111,7 @@ module.exports = {
   registrarDevolucion,
   reportarFallo,
   descargarHojaDeVida,
+  descargarActaEntrega,
   getHojaVida,
   agregarAccionHojaVida,
   eliminarAccionHojaVida,

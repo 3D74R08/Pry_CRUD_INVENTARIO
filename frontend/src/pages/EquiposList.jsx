@@ -466,6 +466,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   const [formPrestamo, setFormPrestamo] = useState({ responsable_nombre: '', cedula_responsable: '', sede: '', observaciones: '' });
   const [historialEquipo, setHistorialEquipo] = useState(null);
   const [descargandoHJ, setDescargandoHJ] = useState(null);
+  const [descargandoActa, setDescargandoActa] = useState(null);
 
   // Estados para Ventana Emergente de Hoja de Vida
   const [modalHojaVidaOpen, setModalHojaVidaOpen] = useState(false);
@@ -889,6 +890,19 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       alert('No se pudo generar/descargar la Hoja de Vida: ' + err.message);
     } finally {
       setDescargandoHJ(null);
+    }
+  };
+
+  // Descargar Acta de Entrega oficial (.docx)
+  const handleDescargarActaEntrega = async (eq) => {
+    try {
+      setDescargandoActa(eq.id);
+      await api.descargarActaEntrega(eq.id, eq.placa || eq.codigo_interno);
+    } catch (err) {
+      console.error('Error al descargar acta de entrega:', err);
+      alert('No se pudo generar/descargar el Acta de Entrega: ' + err.message);
+    } finally {
+      setDescargandoActa(null);
     }
   };
 
@@ -2349,6 +2363,16 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
+                  className="btn btn-secondary"
+                  onClick={() => handleDescargarActaEntrega(equipoHojaVida)}
+                  disabled={descargandoActa === equipoHojaVida.id}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '6px 12px' }}
+                  title="Descargar Acta de Entrega oficial en formato Word (.docx)"
+                >
+                  <FileTextIcon size={14} /> {descargandoActa === equipoHojaVida.id ? 'Generando...' : 'Descargar Acta (Word)'}
+                </button>
+                <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={() => handleDescargarHojaVida(equipoHojaVida)}
                   disabled={descargandoHJ === equipoHojaVida.id}
@@ -2795,16 +2819,29 @@ VPN FortiClient"
             </div>
 
             {/* Pie del Modal */}
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => handleDescargarHojaVida(equipoHojaVida)}
-                disabled={descargandoHJ === equipoHojaVida.id}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                <DownloadIcon size={14} /> {descargandoHJ === equipoHojaVida.id ? 'Descargando...' : 'Descargar Hoja de Vida (.xlsx)'}
-              </button>
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => handleDescargarActaEntrega(equipoHojaVida)}
+                  disabled={descargandoActa === equipoHojaVida.id}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  title="Descargar Acta de Entrega oficial en formato Word (.docx)"
+                >
+                  <FileTextIcon size={14} /> {descargandoActa === equipoHojaVida.id ? 'Descargando...' : 'Descargar Acta (.docx)'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => handleDescargarHojaVida(equipoHojaVida)}
+                  disabled={descargandoHJ === equipoHojaVida.id}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  title="Descargar Hoja de Vida oficial en Excel (.xlsx)"
+                >
+                  <DownloadIcon size={14} /> {descargandoHJ === equipoHojaVida.id ? 'Descargando...' : 'Descargar Hoja de Vida (.xlsx)'}
+                </button>
+              </div>
 
               <button
                 type="button"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import { UsersIcon, BuildingIcon, MapPinIcon, PlusIcon, RotateCcwIcon, XIcon } from '../components/Icons';
+import { UsersIcon, BuildingIcon, MapPinIcon, PlusIcon, RotateCcwIcon, XIcon, FileTextIcon } from '../components/Icons';
 
 export default function Asignaciones() {
   const [modo, setModo] = useState('colaborador'); // 'colaborador' | 'area' | 'sede'
@@ -21,6 +21,7 @@ export default function Asignaciones() {
   const [modalAsignarOpen, setModalAsignarOpen] = useState(false);
   const [equiposDisponibles, setEquiposDisponibles] = useState([]);
   const [selectedEquipoId, setSelectedEquipoId] = useState('');
+  const [descargandoActaId, setDescargandoActaId] = useState(null);
 
   useEffect(() => {
     cargarDatosIniciales();
@@ -157,15 +158,39 @@ export default function Asignaciones() {
         };
       }
 
-      await api.updateEquipo(selectedEquipoId, updatePayload);
+      const eqAsignadoId = selectedEquipoId;
+      await api.updateEquipo(eqAsignadoId, updatePayload);
       setModalAsignarOpen(false);
       
       // Refrescar vista actual
       if (modo === 'colaborador') seleccionarUsuario(selectedUser);
       else if (modo === 'area') seleccionarArea(selectedArea);
       else if (modo === 'sede') seleccionarSede(selectedSede);
+
+      // Ofrecer descarga inmediata del Acta de Entrega oficial
+      const descargarAhora = window.confirm(
+        '¡Asignación guardada con éxito!\n\n¿Deseas descargar el Acta de Entrega oficial en formato Word (.docx) para firma del colaborador ahora mismo?'
+      );
+      if (descargarAhora) {
+        api.descargarActaEntrega(eqAsignadoId).catch((err) => {
+          console.error('Error al descargar acta tras asignación:', err);
+          alert('Error al descargar el Acta: ' + err.message);
+        });
+      }
     } catch (err) {
       alert('Error al asignar equipo: ' + err.message);
+    }
+  };
+
+  const handleDescargarActa = async (eq) => {
+    try {
+      setDescargandoActaId(eq.id);
+      await api.descargarActaEntrega(eq.id, eq.placa || eq.codigo_interno);
+    } catch (err) {
+      console.error('Error al descargar acta de entrega:', err);
+      alert('Error al descargar el Acta de Entrega: ' + err.message);
+    } finally {
+      setDescargandoActaId(null);
     }
   };
 
@@ -410,7 +435,31 @@ export default function Asignaciones() {
                         )}
                       </div>
 
-                      <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                      <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px', gap: '8px' }}>
+                        <button
+                          className="btn-icon"
+                          title="Descargar Acta de Entrega oficial en formato Word (.docx)"
+                          onClick={() => handleDescargarActa(eq)}
+                          disabled={descargandoActaId === eq.id}
+                          style={{
+                            width: 'auto',
+                            padding: '4px 10px',
+                            fontSize: '11.5px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)',
+                            cursor: 'pointer',
+                            color: 'var(--primary)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <FileTextIcon size={13} />
+                          {descargandoActaId === eq.id ? 'Generando...' : 'Descargar Acta'}
+                        </button>
+
                         <button
                           className="btn-icon warn"
                           title="Retirar equipo y devolver a custodia"

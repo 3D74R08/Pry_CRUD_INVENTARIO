@@ -127,6 +127,33 @@ export const api = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+  descargarActaEntrega: async (equipoId, placa) => {
+    const token = localStorage.getItem('activos_ti_token');
+    const response = await fetch(`/api/equipos/${equipoId}/acta-entrega`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Error al descargar el Acta de Entrega');
+    }
+
+    let filename = `Acta_Entrega_${placa || 'Equipo'}.docx`;
+    const disposition = response.headers.get('content-disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
   getHojaVidaDatos: (id) => request(`/equipos/${id}/hoja-de-vida/datos`),
   updateHojaVida: (id, data) =>
     request(`/equipos/${id}/hoja-de-vida`, {
