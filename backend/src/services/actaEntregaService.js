@@ -41,9 +41,9 @@ function parseBase64Image(dataUri) {
 
 // Generar markup DrawingML para una imagen dentro de una celda
 function buildSignatureDrawingXml(relId, docPrId) {
-  return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing>` +
+  return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="200" w:lineRule="auto"/><w:keepNext/></w:pPr><w:r><w:drawing>` +
     `<wp:inline distT="0" distB="0" distL="0" distR="0">` +
-      `<wp:extent cx="1600000" cy="800000"/>` +
+      `<wp:extent cx="1300000" cy="480000"/>` +
       `<wp:docPr id="${docPrId}" name="Firma_${docPrId}"/>` +
       `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
         `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
@@ -57,7 +57,7 @@ function buildSignatureDrawingXml(relId, docPrId) {
               `<a:stretch><a:fillRect/></a:stretch>` +
             `</pic:blipFill>` +
             `<pic:spPr>` +
-              `<a:xfrm><a:off x="0" y="0"/><a:ext cx="1600000" cy="800000"/></a:xfrm>` +
+              `<a:xfrm><a:off x="0" y="0"/><a:ext cx="1300000" cy="480000"/></a:xfrm>` +
               `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
             `</pic:spPr>` +
           `</pic:pic>` +
@@ -135,8 +135,8 @@ async function generarActaEntrega(equipo, opciones = {}) {
 
   // 2. Gestionar firmas electrónicas (Entrega y Recibe)
   let docRels = await zip.file('word/_rels/document.xml.rels').async('text');
-  let firmaEntregaXml = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p>`;
-  let firmaRecibeXml = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p>`;
+  let firmaEntregaXml = `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="60" w:line="200" w:lineRule="auto"/><w:keepNext/></w:pPr><w:r><w:rPr><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t xml:space="preserve"> </w:t></w:r></w:p>`;
+  let firmaRecibeXml = `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="60" w:line="200" w:lineRule="auto"/><w:keepNext/></w:pPr><w:r><w:rPr><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t xml:space="preserve"> </w:t></w:r></w:p>`;
 
   if (opciones.firmaEntrega) {
     const parsed = parseBase64Image(opciones.firmaEntrega);
@@ -172,6 +172,12 @@ async function generarActaEntrega(equipo, opciones = {}) {
 
   // 3. Extraer y modificar word/document.xml
   let docXml = await zip.file('word/document.xml').async('text');
+
+  // Ajustar márgenes para asegurar que todo el contenido entre perfectamente en 1 sola página
+  docXml = docXml.replace(
+    /<w:pgMar[^>]*\/>/g,
+    '<w:pgMar w:top="1500" w:right="1200" w:bottom="950" w:left="900" w:header="720" w:footer="720" w:gutter="0"/>'
+  );
 
   // Preparar valores normalizados
   const hoy = opciones.fecha ? new Date(opciones.fecha) : new Date();
@@ -209,7 +215,7 @@ async function generarActaEntrega(equipo, opciones = {}) {
     equipo.cargo ? ' - ' + equipo.cargo : ''
   }`;
 
-  // Generar tabla de firmas centrada y sin bordes
+  // Generar tabla de firmas compacta, centrada, sin bordes y que nunca se divide entre páginas
   const tablaFirmasXml =
     `<w:tbl>` +
       `<w:tblPr>` +
@@ -224,10 +230,10 @@ async function generarActaEntrega(equipo, opciones = {}) {
           `<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>` +
         `</w:tblBorders>` +
         `<w:tblCellMar>` +
-          `<w:top w:w="60" w:type="dxa"/>` +
-          `<w:bottom w:w="60" w:type="dxa"/>` +
-          `<w:left w:w="120" w:type="dxa"/>` +
-          `<w:right w:w="120" w:type="dxa"/>` +
+          `<w:top w:w="20" w:type="dxa"/>` +
+          `<w:bottom w:w="20" w:type="dxa"/>` +
+          `<w:left w:w="100" w:type="dxa"/>` +
+          `<w:right w:w="100" w:type="dxa"/>` +
         `</w:tblCellMar>` +
       `</w:tblPr>` +
       `<w:tblGrid>` +
@@ -235,16 +241,18 @@ async function generarActaEntrega(equipo, opciones = {}) {
         `<w:gridCol w:w="4600"/>` +
       `</w:tblGrid>` +
       `<w:tr>` +
+        `<w:trPr><w:cantSplit/></w:trPr>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>Entrega</w:t></w:r></w:p>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="200" w:lineRule="auto"/><w:keepNext/><w:rPr><w:b/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>Entrega</w:t></w:r></w:p>` +
         `</w:tc>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>Recibe</w:t></w:r></w:p>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="200" w:lineRule="auto"/><w:keepNext/><w:rPr><w:b/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>Recibe</w:t></w:r></w:p>` +
         `</w:tc>` +
       `</w:tr>` +
       `<w:tr>` +
+        `<w:trPr><w:cantSplit/></w:trPr>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/><w:vAlign w:val="bottom"/></w:tcPr>` +
           `${firmaEntregaXml}` +
@@ -255,33 +263,36 @@ async function generarActaEntrega(equipo, opciones = {}) {
         `</w:tc>` +
       `</w:tr>` +
       `<w:tr>` +
+        `<w:trPr><w:cantSplit/></w:trPr>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>__________________________________</w:t></w:r></w:p>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="10" w:line="180" w:lineRule="auto"/><w:keepNext/><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>__________________________________</w:t></w:r></w:p>` +
         `</w:tc>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>__________________________________</w:t></w:r></w:p>` +
-        `</w:tc>` +
-      `</w:tr>` +
-      `<w:tr>` +
-        `<w:tc>` +
-          `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t>${escapeXml(entregaNombre)}</w:t></w:r></w:p>` +
-        `</w:tc>` +
-        `<w:tc>` +
-          `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t>${escapeXml(recibeNombre)}</w:t></w:r></w:p>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="10" w:line="180" w:lineRule="auto"/><w:keepNext/><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>__________________________________</w:t></w:r></w:p>` +
         `</w:tc>` +
       `</w:tr>` +
       `<w:tr>` +
+        `<w:trPr><w:cantSplit/></w:trPr>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>${escapeXml(entregaCargo)}</w:t></w:r></w:p>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="190" w:lineRule="auto"/><w:keepNext/><w:rPr><w:b/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr><w:t>${escapeXml(entregaNombre)}</w:t></w:r></w:p>` +
         `</w:tc>` +
         `<w:tc>` +
           `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
-          `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>${escapeXml(recibeDetalle)}</w:t></w:r></w:p>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="190" w:lineRule="auto"/><w:keepNext/><w:rPr><w:b/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr><w:t>${escapeXml(recibeNombre)}</w:t></w:r></w:p>` +
+        `</w:tc>` +
+      `</w:tr>` +
+      `<w:tr>` +
+        `<w:trPr><w:cantSplit/></w:trPr>` +
+        `<w:tc>` +
+          `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="180" w:lineRule="auto"/><w:keepNext/><w:rPr><w:sz w:val="17"/><w:szCs w:val="17"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="17"/><w:szCs w:val="17"/></w:rPr><w:t>${escapeXml(entregaCargo)}</w:t></w:r></w:p>` +
+        `</w:tc>` +
+        `<w:tc>` +
+          `<w:tcPr><w:tcW w:w="4600" w:type="dxa"/></w:tcPr>` +
+          `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="180" w:lineRule="auto"/><w:keepNext/><w:rPr><w:sz w:val="17"/><w:szCs w:val="17"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="17"/><w:szCs w:val="17"/></w:rPr><w:t>${escapeXml(recibeDetalle)}</w:t></w:r></w:p>` +
         `</w:tc>` +
       `</w:tr>` +
     `</w:tbl>`;
@@ -380,7 +391,15 @@ async function generarActaEntrega(equipo, opciones = {}) {
       );
     }
 
-    // Bloque de Firmas: P32 a P37 se reemplaza con la tabla perfectamente centrada y sin bordes
+    // Párrafos en blanco innecesarios que causan salto de página hacia la página 2:
+    // P6 (entre Asunto y Saludo), P8 (entre Saludo y Tipo de Equipo), P10 (entre Tipo y Marca),
+    // P20 (entre Párrafo 1 y 2), P22 (entre Párrafo 2 y 3), P27 (entre Correos y Cordialmente),
+    // P29 (entre Cordialmente y Observaciones), P31 (entre Observaciones y Firmas).
+    if ([6, 8, 10, 20, 22, 27, 29, 31].includes(curIdx)) {
+      return '';
+    }
+
+    // Bloque de Firmas: P32 a P37 se reemplaza con la tabla perfectamente compacta, centrada y sin bordes
     if (curIdx === 32) {
       return tablaFirmasXml;
     }
