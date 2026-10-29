@@ -11,6 +11,8 @@ import CargaMasiva from './pages/CargaMasiva';
 import TareasWorker from './pages/TareasWorker';
 import Reportes from './pages/Reportes';
 import UsuariosList from './pages/UsuariosList';
+import PrivacyTermsModal from './components/PrivacyTermsModal';
+import StorageConsentBanner from './components/StorageConsentBanner';
 import { SunIcon, MoonIcon, MenuIcon } from './components/Icons';
 
 export default function App() {
@@ -18,6 +20,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [moduloActivo, setModuloActivo] = useState('todos');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('vaultti_theme') || 'dark';
   });
@@ -112,6 +115,7 @@ export default function App() {
         setModuloActivo={setModuloActivo}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onOpenPrivacy={() => setIsPrivacyModalOpen(true)}
       />
 
       <div className="main-wrapper">
@@ -208,6 +212,15 @@ export default function App() {
             (canManageUsers ? <UsuariosList /> : <MisEquipos />)}
         </main>
       </div>
+
+      {/* Banner de consentimiento y transparencia de almacenamiento local (Habeas Data) */}
+      <StorageConsentBanner onOpenPrivacy={() => setIsPrivacyModalOpen(true)} />
+
+      {/* Modal integral de Privacidad, Tratamiento de Datos (Ley 1581) y Términos */}
+      <PrivacyTermsModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+      />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   PackageIcon,
   BuildingIcon,
 } from '../components/Icons';
+import { SkeletonKpiCard, SkeletonBox, SkeletonText } from '../components/Skeleton';
 
 export default function Dashboard({ onNavigate }) {
   const { user, isAdmin, canManageInventory } = useAuth();
@@ -184,43 +185,101 @@ export default function Dashboard({ onNavigate }) {
   }, [ecosystemData]);
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando métricas ejecutivas...</div>;
+    return (
+      <div aria-busy="true" aria-label="Cargando métricas ejecutivas">
+        <div className="kpi-grid">
+          <SkeletonKpiCard />
+          <SkeletonKpiCard />
+          <SkeletonKpiCard />
+          <SkeletonKpiCard />
+        </div>
+        <div className="dashboard-grid-3col" style={{ marginTop: '20px' }}>
+          <div className="content-panel" style={{ padding: '20px' }}>
+            <SkeletonBox width="140px" height="18px" style={{ marginBottom: '16px' }} />
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
+              <SkeletonBox width="120px" height="120px" borderRadius="50%" />
+            </div>
+            <SkeletonText lines={3} />
+          </div>
+          <div className="content-panel" style={{ padding: '20px' }}>
+            <SkeletonBox width="160px" height="18px" style={{ marginBottom: '16px' }} />
+            <SkeletonText lines={4} />
+          </div>
+          <div className="content-panel" style={{ padding: '20px' }}>
+            <SkeletonBox width="150px" height="18px" style={{ marginBottom: '16px' }} />
+            <SkeletonText lines={4} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div>
-      {/* 1. Cuadrícula de KPIs Principales */}
+      {/* 1. Cuadrícula de KPIs Principales con Accesibilidad de Teclado */}
       <div className="kpi-grid">
-        <div className="kpi-card" onClick={() => onNavigate && onNavigate('equipos')} style={{ cursor: 'pointer' }}>
+        <div
+          className="kpi-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('equipos')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('equipos'); } }}
+          aria-label={`Total de Equipos: ${resumen.totalEquipos}. Presiona enter para ver el inventario.`}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="kpi-info">
             <div className="kpi-label">Total de Equipos</div>
             <div className="kpi-value">{resumen.totalEquipos}</div>
           </div>
-          <div className="kpi-icon-wrap blue"><LaptopIcon size={24} /></div>
+          <div className="kpi-icon-wrap blue" aria-hidden="true"><LaptopIcon size={24} /></div>
         </div>
 
-        <div className="kpi-card" onClick={() => onNavigate && onNavigate('equipos')} style={{ cursor: 'pointer' }}>
+        <div
+          className="kpi-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('equipos')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('equipos'); } }}
+          aria-label={`Libres en Custodia TI: ${disponibilidad.enCustodia || 0}. Presiona enter para ver el inventario.`}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="kpi-info">
             <div className="kpi-label">Libres en Custodia TI</div>
             <div className="kpi-value">{disponibilidad.enCustodia || 0}</div>
           </div>
-          <div className="kpi-icon-wrap green"><PackageIcon size={24} /></div>
+          <div className="kpi-icon-wrap green" aria-hidden="true"><PackageIcon size={24} /></div>
         </div>
 
-        <div className="kpi-card" onClick={() => onNavigate && onNavigate('equipos')} style={{ cursor: 'pointer' }}>
+        <div
+          className="kpi-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('equipos')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('equipos'); } }}
+          aria-label={`Asignados y Préstamos: ${(disponibilidad.asignados || 0) + (disponibilidad.prestamoTemporal || 0)}. Presiona enter para ver el inventario.`}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="kpi-info">
             <div className="kpi-label">Asignados y Préstamos</div>
             <div className="kpi-value">{(disponibilidad.asignados || 0) + (disponibilidad.prestamoTemporal || 0)}</div>
           </div>
-          <div className="kpi-icon-wrap purple"><TagIcon size={24} /></div>
+          <div className="kpi-icon-wrap purple" aria-hidden="true"><TagIcon size={24} /></div>
         </div>
 
-        <div className="kpi-card" onClick={() => onNavigate && onNavigate('usuarios')} style={{ cursor: 'pointer' }}>
+        <div
+          className="kpi-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('usuarios')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('usuarios'); } }}
+          aria-label={`Usuarios Activos: ${resumen.usuariosActivos}. Presiona enter para gestionar usuarios.`}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="kpi-info">
             <div className="kpi-label">Usuarios Activos</div>
             <div className="kpi-value">{resumen.usuariosActivos}</div>
           </div>
-          <div className="kpi-icon-wrap amber"><UsersIcon size={24} /></div>
+          <div className="kpi-icon-wrap amber" aria-hidden="true"><UsersIcon size={24} /></div>
         </div>
       </div>
 

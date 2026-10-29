@@ -4,6 +4,8 @@ import HistorialModal from './HistorialModal';
 import Pagination from '../components/Pagination';
 import SelectOrCustomInput from '../components/SelectOrCustomInput';
 import ModalFirmaActa from '../components/ModalFirmaActa';
+import { SkeletonTableRow, SkeletonBox, SkeletonText } from '../components/Skeleton';
+import { useToast } from '../context/ToastContext';
 import {
   MonitorIcon,
   UsersIcon,
@@ -446,6 +448,7 @@ const INITIAL_FORM = {
 };
 
 export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, onNavigate }) {
+  const toast = useToast();
   const [equipos, setEquipos] = useState([]);
   const [conteos, setConteos] = useState({});
   const [loading, setLoading] = useState(true);
@@ -641,7 +644,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       setConteos(dataConteos.conteos || {});
       setPaginaActual(1);
     } catch (err) {
-      alert('Error al cargar datos del inventario: ' + err.message);
+      toast.error('Error al cargar datos del inventario: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -650,6 +653,21 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   useEffect(() => {
     cargarDatos();
   }, [moduloActivo, estadoFiltro, tipoFiltro, sedeFiltro, ordenPlaca]);
+
+  // Accesibilidad: Cerrar modales abiertos mediante la tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (modalHojaVidaOpen) setModalHojaVidaOpen(false);
+        else if (modalFormOpen) setModalFormOpen(false);
+        else if (modalPrestarCustodiaOpen) setModalPrestarCustodiaOpen(false);
+        else if (modalDevolucionPrestamoOpen) setModalDevolucionPrestamoOpen(false);
+        else if (modalFirmaActaOpen) setModalFirmaActaOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalHojaVidaOpen, modalFormOpen, modalPrestarCustodiaOpen, modalDevolucionPrestamoOpen, modalFirmaActaOpen]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -804,13 +822,15 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     try {
       if (equipoEditando) {
         await api.updateEquipo(equipoEditando.id, formData);
+        toast.success('Equipo actualizado exitosamente.');
       } else {
         await api.createEquipo(formData);
+        toast.success('Equipo registrado exitosamente.');
       }
       setModalFormOpen(false);
       cargarDatos();
     } catch (err) {
-      alert('Error al guardar equipo: ' + err.message);
+      toast.error('Error al guardar equipo: ' + err.message);
     }
   };
 
@@ -832,9 +852,10 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     try {
       await api.registrarPrestamo(equipoPrestamo.id, formPrestamo);
       setModalPrestamoOpen(false);
+      toast.success('Préstamo registrado exitosamente.');
       cargarDatos();
     } catch (err) {
-      alert('Error al registrar préstamo: ' + err.message);
+      toast.error('Error al registrar préstamo: ' + err.message);
     }
   };
 
@@ -846,9 +867,10 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
         quien_recibe: quien,
         observaciones: 'Devuelto a custodia TI',
       });
+      toast.success('Devolución a custodia TI completada.');
       cargarDatos();
     } catch (err) {
-      alert('Error al registrar devolución: ' + err.message);
+      toast.error('Error al registrar devolución: ' + err.message);
     }
   };
 
@@ -862,15 +884,16 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   const handleSubmitBaja = async (e) => {
     e.preventDefault();
     if (!motivoBaja.trim()) {
-      alert('Debes indicar un motivo para la baja');
+      toast.warning('Debes indicar un motivo para la baja');
       return;
     }
     try {
       await api.darDeBaja(equipoBaja.id, motivoBaja);
       setModalBajaOpen(false);
+      toast.success('Equipo dado de baja correctamente.');
       cargarDatos();
     } catch (err) {
-      alert('Error al dar de baja: ' + err.message);
+      toast.error('Error al dar de baja: ' + err.message);
     }
   };
 
@@ -879,9 +902,10 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     if (confirm(`¿Estás seguro de eliminar el equipo con placa ${eq.placa}? Esta acción no se puede deshacer.`)) {
       try {
         await api.deleteEquipo(eq.id);
+        toast.success(`Equipo con placa ${eq.placa} eliminado.`);
         cargarDatos();
       } catch (err) {
-        alert('Error al eliminar equipo: ' + err.message);
+        toast.error('Error al eliminar equipo: ' + err.message);
       }
     }
   };
@@ -891,9 +915,10 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     try {
       setDescargandoHJ(eq.id);
       await api.descargarHojaDeVida(eq.id, eq.placa);
+      toast.success('Hoja de Vida descargada con éxito.');
     } catch (err) {
       console.error('Error al descargar hoja de vida:', err);
-      alert('No se pudo generar/descargar la Hoja de Vida: ' + err.message);
+      toast.error('No se pudo generar/descargar la Hoja de Vida: ' + err.message);
     } finally {
       setDescargandoHJ(null);
     }
@@ -1057,8 +1082,9 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     try {
       await api.eliminarAccionHojaVida(equipoHojaVida.id, accionId);
       setAccionesHojaVida((prev) => prev.filter((a) => a.id !== accionId));
+      toast.success('Acción eliminada del historial.');
     } catch (err) {
-      alert('Error al eliminar acción: ' + err.message);
+      toast.error('Error al eliminar acción: ' + err.message);
     }
   };
 
@@ -1091,22 +1117,23 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       });
       setModalPrestarCustodiaOpen(true);
     } catch (err) {
-      alert('Error al consultar equipos en custodia: ' + err.message);
+      toast.error('Error al consultar equipos en custodia: ' + err.message);
     }
   };
 
   const handleSubmitPrestarCustodia = async (e) => {
     e.preventDefault();
     if (!equipoCustodiaSeleccionado) {
-      alert('Por favor selecciona el equipo en custodia que se va a prestar');
+      toast.warning('Por favor selecciona el equipo en custodia que se va a prestar');
       return;
     }
     try {
       await api.registrarPrestamo(equipoCustodiaSeleccionado.id, formPrestamo);
       setModalPrestarCustodiaOpen(false);
+      toast.success('Préstamo registrado exitosamente.');
       cargarDatos();
     } catch (err) {
-      alert('Error al registrar préstamo: ' + err.message);
+      toast.error('Error al registrar préstamo: ' + err.message);
     }
   };
 
@@ -1133,22 +1160,23 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
       });
       setModalDevolucionPrestamoOpen(true);
     } catch (err) {
-      alert('Error al consultar equipos en préstamo: ' + err.message);
+      toast.error('Error al consultar equipos en préstamo: ' + err.message);
     }
   };
 
   const handleSubmitDevolucionPrestamo = async (e) => {
     e.preventDefault();
     if (!equipoPrestadoSeleccionado) {
-      alert('Por favor selecciona el equipo prestado a devolver');
+      toast.warning('Por favor selecciona el equipo prestado a devolver');
       return;
     }
     try {
       await api.registrarDevolucion(equipoPrestadoSeleccionado.id, formDevolucionModal);
       setModalDevolucionPrestamoOpen(false);
+      toast.success('Devolución a custodia completada.');
       cargarDatos();
     } catch (err) {
-      alert('Error al registrar devolución: ' + err.message);
+      toast.error('Error al registrar devolución: ' + err.message);
     }
   };
 
@@ -1432,11 +1460,9 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
 
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '40px' }}>
-                  Cargando inventario tecnológico...
-                </td>
-              </tr>
+              Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonTableRow key={i} keyIndex={i} cols={9} />
+              ))
             ) : equiposPaginados.length === 0 ? (
               <tr>
                 <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -2467,8 +2493,25 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
             {/* Cuerpo del Modal (Scrollable) */}
             <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '18px' }}>
               {cargandoHojaVida ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                  Cargando datos de la Hoja de Vida...
+                <div style={{ padding: '14px 6px' }} aria-busy="true" aria-label="Cargando datos de la Hoja de Vida">
+                  <SkeletonBox width="200px" height="18px" style={{ marginBottom: '16px' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i}>
+                        <SkeletonBox width="80px" height="12px" style={{ marginBottom: '6px' }} />
+                        <SkeletonBox width="100%" height="36px" borderRadius="6px" />
+                      </div>
+                    ))}
+                  </div>
+                  <SkeletonBox width="240px" height="18px" style={{ marginBottom: '16px' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i}>
+                        <SkeletonBox width="90px" height="12px" style={{ marginBottom: '6px' }} />
+                        <SkeletonBox width="100%" height="36px" borderRadius="6px" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : tabHojaVida === 'datos' ? (
                 /* TAB 1: Edición de Datos Técnicos y Asignación */

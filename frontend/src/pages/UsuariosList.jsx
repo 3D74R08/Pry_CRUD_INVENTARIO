@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../components/Pagination';
 import { PlusIcon, EditIcon, TrashIcon, XIcon, CheckIcon, AlertTriangleIcon } from '../components/Icons';
+import { SkeletonTableRow } from '../components/Skeleton';
+import ConfirmModal from '../components/ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 export default function UsuariosList() {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -13,6 +17,14 @@ export default function UsuariosList() {
   const [busqueda, setBusqueda] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
   const [itemsPorPagina, setItemsPorPagina] = useState(25);
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'primary',
+    confirmText: 'Confirmar',
+    onConfirm: () => {},
+  });
   const [formData, setFormData] = useState({
     nombre_completo: '',
     email: '',
@@ -40,7 +52,7 @@ export default function UsuariosList() {
       const data = await api.getUsuarios();
       setUsuarios(data.usuarios || []);
     } catch (err) {
-      alert('Error al cargar usuarios: ' + err.message);
+      toast.error('Error al cargar usuarios: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -49,6 +61,23 @@ export default function UsuariosList() {
   useEffect(() => {
     cargarUsuarios();
   }, []);
+
+  // Escuchar tecla Escape para cerrar cualquier modal abierto
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (confirmConfig.isOpen) {
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        } else if (modalOpen) {
+          setModalOpen(false);
+        } else if (modalEditarOpen) {
+          setModalEditarOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [confirmConfig.isOpen, modalOpen, modalEditarOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,9 +93,10 @@ export default function UsuariosList() {
         cargo: '',
         departamento: '',
       });
+      toast.success('Usuario registrado con éxito en el sistema.');
       cargarUsuarios();
     } catch (err) {
-      alert('Error al crear usuario: ' + err.message);
+      toast.error('Error al crear usuario: ' + err.message);
     }
   };
 
@@ -90,41 +120,58 @@ export default function UsuariosList() {
     try {
       await api.updateUsuario(formEdit.id, formEdit);
       setModalEditarOpen(false);
+      toast.success('Información del usuario actualizada.');
       cargarUsuarios();
     } catch (err) {
-      alert('Error al actualizar usuario: ' + err.message);
+      toast.error('Error al actualizar usuario: ' + err.message);
     }
   };
 
-  const handleToggleActivo = async (u) => {
+  const handleToggleActivo = (u) => {
     if (u.id === currentUser?.id) {
-      alert('No puedes deshabilitar tu propia cuenta de administrador.');
+      toast.warning('No puedes deshabilitar tu propia cuenta de administrador.');
       return;
     }
     const accion = u.activo ? 'deshabilitar' : 'habilitar';
-    if (confirm(`¿Estás seguro de que deseas ${accion} el acceso a ${u.nombre_completo}?`)) {
-      try {
-        await api.toggleUsuarioActivo(u.id);
-        cargarUsuarios();
-      } catch (err) {
-        alert('Error al cambiar estado: ' + err.message);
-      }
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: `¿${accion === 'deshabilitar' ? 'Deshabilitar' : 'Habilitar'} acceso?`,
+      message: `¿Estás seguro de que deseas ${accion} el acceso al sistema para ${u.nombre_completo}?`,
+      variant: accion === 'deshabilitar' ? 'danger' : 'primary',
+      confirmText: accion === 'deshabilitar' ? 'Sí, deshabilitar' : 'Sí, habilitar',
+      onConfirm: async () => {
+        try {
+          await api.toggleUsuarioActivo(u.id);
+          toast.success(`Cuenta de ${u.nombre_completo} actualizada.`);
+          cargarUsuarios();
+        } catch (err) {
+          toast.error('Error al cambiar estado: ' + err.message);
+        }
+      },
+    });
   };
 
-  const handleDelete = async (u) => {
+  const handleDelete = (u) => {
     if (u.id === currentUser?.id) {
-      alert('No puedes eliminar tu propia cuenta de administrador.');
+      toast.warning('No puedes eliminar tu propia cuenta de administrador.');
       return;
     }
-    if (confirm(`¿ATENCIÓN: Deseas eliminar definitivamente el usuario ${u.nombre_completo} (${u.email})?`)) {
-      try {
-        await api.deleteUsuario(u.id);
-        cargarUsuarios();
-      } catch (err) {
-        alert('Error al eliminar usuario: ' + err.message);
-      }
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Eliminar usuario definitivamente',
+      message: `¿ATENCIÓN: Deseas eliminar permanentemente al usuario ${u.nombre_completo} (${u.email})? Esta acción no se puede deshacer.`,
+      variant: 'danger',
+      confirmText: 'Sí, eliminar',
+      onConfirm: async () => {
+        try {
+          await api.deleteUsuario(u.id);
+          toast.success(`Usuario ${u.nombre_completo} eliminado.`);
+          cargarUsuarios();
+        } catch (err) {
+          toast.error('Error al eliminar usuario: ' + err.message);
+        }
+      },
+    });
   };
 
   const usuariosFiltrados = usuarios.filter(
@@ -181,11 +228,9 @@ export default function UsuariosList() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>
-                  Cargando directorio de usuarios...
-                </td>
-              </tr>
+              Array.from({ length: 6 }).map((_, idx) => (
+                <SkeletonTableRow key={idx} keyIndex={idx} cols={7} />
+              ))
             ) : usuariosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
@@ -514,6 +559,20 @@ export default function UsuariosList() {
           </div>
         </div>
       )}
+
+      {/* Modal accesible de confirmación para acciones críticas */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        variant={confirmConfig.variant}
+        confirmText={confirmConfig.confirmText}
+        onConfirm={() => {
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+          confirmConfig.onConfirm();
+        }}
+        onClose={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

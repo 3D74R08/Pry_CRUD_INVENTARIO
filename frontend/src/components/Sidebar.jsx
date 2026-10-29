@@ -22,7 +22,7 @@ import {
   XIcon,
 } from './Icons';
 
-export default function Sidebar({ currentView, setView, moduloActivo, setModuloActivo, isOpen, onClose }) {
+export default function Sidebar({ currentView, setView, moduloActivo, setModuloActivo, isOpen, onClose, onOpenPrivacy }) {
   const { user, isAdmin, isTecnico, canManageInventory, canManageUsers, logout } = useAuth();
   const [conteos, setConteos] = useState({
     todos: 0,
@@ -291,6 +291,34 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
           </>
         )}
       </nav>
+
+      <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)' }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenPrivacy) onOpenPrivacy();
+            if (onClose) onClose();
+          }}
+          className="btn-sidebar-privacy"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            fontSize: '11px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            padding: '4px 0',
+            width: '100%',
+            textAlign: 'left',
+          }}
+          title="Ver Política de Privacidad (Ley 1581 de 2012) y Términos"
+        >
+          <span style={{ fontSize: '12px' }}>🛡️</span>
+          <span>Privacidad & Términos (Ley 1581)</span>
+        </button>
+      </div>
 
       <div className="sidebar-footer">
         <div className="user-profile-box">

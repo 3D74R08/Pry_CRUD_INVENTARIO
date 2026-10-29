@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PrivacyTermsModal from '../components/PrivacyTermsModal';
 
 export default function Login() {
   const { login } = useAuth();
@@ -8,6 +9,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -169,7 +171,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: '6px' }}>
+              <label htmlFor="login-email" className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: '6px' }}>
                 Correo Institucional
               </label>
               <div className="login-input-wrapper">
@@ -180,11 +182,13 @@ export default function Login() {
                   </svg>
                 </span>
                 <input
+                  id="login-email"
                   type="email"
                   className="form-control login-input-with-icon"
                   placeholder="usuario@empresa.local"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="username"
                   required
                 />
               </div>
@@ -192,7 +196,7 @@ export default function Login() {
 
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', margin: 0 }}>
+                <label htmlFor="login-password" className="form-label" style={{ fontWeight: 600, fontSize: '13px', margin: 0 }}>
                   Contraseña
                 </label>
               </div>
@@ -204,20 +208,22 @@ export default function Login() {
                   </svg>
                 </span>
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   className="form-control login-input-with-icon"
                   style={{ paddingRight: '40px' }}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   required
                 />
                 <button
                   type="button"
                   className="login-pw-toggle"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                   title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                  tabIndex="-1"
                 >
                   {showPassword ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -259,10 +265,32 @@ export default function Login() {
           </form>
 
           <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #f1f5f9', textAlign: 'center', fontSize: '11.5px', color: '#94a3b8' }}>
-            🔒 Conexión segura con cifrado TLS/HTTPS · Red Corporativa
+            <div>🔒 Conexión segura con cifrado TLS/HTTPS · Red Corporativa</div>
+            <div style={{ marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setPrivacyModalOpen(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary)',
+                  fontSize: '11.5px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: '2px 4px',
+                }}
+              >
+                Política de Tratamiento de Datos (Ley 1581) y Términos
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      <PrivacyTermsModal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+      />
     </div>
   );
 }
