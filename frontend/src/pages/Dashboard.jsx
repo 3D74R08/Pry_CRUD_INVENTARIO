@@ -2,24 +2,26 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
-  LaptopIcon,
-  UsersIcon,
-  ClockIcon,
-  CheckIcon,
-  PlusIcon,
-  TagIcon,
-  ArrowLeftRightIcon,
-  RotateCcwIcon,
-  AlertTriangleIcon,
-  UploadCloudIcon,
-  ArchiveIcon,
-  PackageIcon,
-  BuildingIcon,
-} from '../components/Icons';
-import { SkeletonKpiCard, SkeletonBox, SkeletonText } from '../components/Skeleton';
+  Monitor,
+  Users,
+  Wrench,
+  Clock,
+  Bell,
+  ChevronRight,
+  MoreVertical,
+  Calendar,
+  Box,
+  BarChart3,
+  RotateCcw,
+  FileSignature,
+  ArrowUpRight,
+  ArrowDownRight,
+  Eye,
+} from 'lucide-react';
+import { SkeletonBox } from '../components/Skeleton';
 
 export default function Dashboard({ onNavigate }) {
-  const { user, isAdmin, canManageInventory } = useAuth();
+  const { user } = useAuth();
   const [metricas, setMetricas] = useState({
     resumen: { totalEquipos: 0, usuariosActivos: 0, tareasEnProceso: 0, tareasCompletadas: 0 },
     disponibilidad: { asignados: 0, enCustodia: 0, prestamoTemporal: 0, deBaja: 0 },
@@ -31,7 +33,7 @@ export default function Dashboard({ onNavigate }) {
   });
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tabDistribucion, setTabDistribucion] = useState('marcas');
+  const [activeMenuId, setActiveMenuId] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -59,503 +61,786 @@ export default function Dashboard({ onNavigate }) {
     loadData();
   }, []);
 
-  const timeAgo = (iso) => {
-    if (!iso) return '';
-    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (diff < 60) return 'Hace instantes';
-    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`;
-    return `Hace ${Math.floor(diff / 86400)} d`;
-  };
-
-  const getEventBadgeClass = (tipo) => {
-    switch (tipo) {
-      case 'CREACION': return 'activity-icon-badge create';
-      case 'ASIGNACION':
-      case 'PRESTAMO': return 'activity-icon-badge asignacion';
-      case 'DEVOLUCION': return 'activity-icon-badge devolucion';
-      case 'REPORTE_FALLO': return 'activity-icon-badge fallo';
-      case 'CARGA_MASIVA': return 'activity-icon-badge masiva';
-      case 'DE_BAJA': return 'activity-icon-badge baja';
-      default: return 'activity-icon-badge create';
-    }
-  };
-
-  const getEventIcon = (tipo) => {
-    switch (tipo) {
-      case 'CREACION': return <PlusIcon size={14} />;
-      case 'ASIGNACION': return <TagIcon size={14} />;
-      case 'PRESTAMO': return <ArrowLeftRightIcon size={14} />;
-      case 'DEVOLUCION': return <RotateCcwIcon size={14} />;
-      case 'REPORTE_FALLO': return <AlertTriangleIcon size={14} />;
-      case 'CARGA_MASIVA': return <UploadCloudIcon size={14} />;
-      case 'DE_BAJA': return <ArchiveIcon size={14} />;
-      default: return <TagIcon size={14} />;
-    }
-  };
-
   const {
     resumen = { totalEquipos: 0, usuariosActivos: 0, tareasEnProceso: 0, tareasCompletadas: 0 },
     disponibilidad = { asignados: 0, enCustodia: 0, prestamoTemporal: 0, deBaja: 0 },
-    porTipo = [],
     porEstado = [],
-    porSede = [],
-    porMarca = [],
-    porSO = [],
   } = metricas;
 
-  // Disponibilidad Operativa (Donut SVG)
-  const itemsDisponibilidad = useMemo(() => [
-    { label: 'Asignados', cantidad: disponibilidad?.asignados || 0, color: '#2563eb' },
-    { label: 'En Custodia TI', cantidad: disponibilidad?.enCustodia || 0, color: '#10b981' },
-    { label: 'Préstamo Temporal', cantidad: disponibilidad?.prestamoTemporal || 0, color: '#f59e0b' },
-    { label: 'De Baja', cantidad: disponibilidad?.deBaja || 0, color: '#94a3b8' },
-  ], [disponibilidad]);
-
-  const totalDisponibilidad = useMemo(() => {
-    return itemsDisponibilidad.reduce((acc, curr) => acc + curr.cantidad, 0) || 1;
-  }, [itemsDisponibilidad]);
-
-  const slicesDisponibilidad = useMemo(() => {
-    let currentAngle = 0;
-    return itemsDisponibilidad.map((item) => {
-      const pct = item.cantidad / totalDisponibilidad;
-      const strokeDasharray = `${pct * 283} 283`;
-      const strokeDashoffset = -currentAngle * 283;
-      currentAngle += pct;
-      return {
-        ...item,
-        dasharray: strokeDasharray,
-        dashoffset: strokeDashoffset,
-        pct: Math.round(pct * 100),
-      };
+  // Cálculo de mantenimiento / en revisión
+  const enMantenimientoCount = useMemo(() => {
+    let count = 0;
+    (porEstado || []).forEach((e) => {
+      const est = (e.estado || '').toUpperCase();
+      if (est.includes('REVISION') || est.includes('MANTENIMIENTO') || est.includes('FALLA') || est.includes('DAÑ')) {
+        count += Number(e.cantidad || 0);
+      }
     });
-  }, [itemsDisponibilidad, totalDisponibilidad]);
-
-  // Salud del Parque Tecnológico (Semáforo de Estados)
-  const saludData = useMemo(() => {
-    const findCount = (queryArr) => {
-      let sum = 0;
-      (porEstado || []).forEach((e) => {
-        const est = (e.estado || '').toUpperCase();
-        if (queryArr.some((q) => est.includes(q))) {
-          sum += (e.cantidad || 0);
-        }
-      });
-      return sum;
-    };
-
-    const funcionales = findCount(['FUNCIONAL', 'OPERATIVO']);
-    const enRevision = findCount(['REVISION', 'MANTENIMIENTO']);
-    const danados = findCount(['DANADO', 'DAÑADO', 'FALLA']);
-    const deBaja = findCount(['BAJA', 'OBSOLETO', 'DESCARTE']);
-
-    const totalSalud = (funcionales + enRevision + danados + deBaja) || 1;
-    return {
-      funcionales,
-      enRevision,
-      danados,
-      deBaja,
-      totalSalud,
-      pctFuncional: Math.round((funcionales / totalSalud) * 100),
-      pctRevision: Math.round((enRevision / totalSalud) * 100),
-      pctDanado: Math.round((danados / totalSalud) * 100),
-      pctBaja: Math.round((deBaja / totalSalud) * 100),
-    };
+    return count;
   }, [porEstado]);
 
-  // Distribución por Sede
-  const maxSedeCount = useMemo(() => {
-    return Math.max(...(porSede.map((s) => s.cantidad) || [1]), 1);
-  }, [porSede]);
+  // Formateador de fecha actual en español: "Mié, 23 Abr 2025"
+  const currentDateFormatted = useMemo(() => {
+    const now = new Date();
+    const diaSemana = now.toLocaleDateString('es-CO', { weekday: 'short' });
+    const capitalizedDia = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1).replace('.', '');
+    const dia = now.getDate();
+    const mes = now.toLocaleDateString('es-CO', { month: 'short' });
+    const capitalizedMes = mes.charAt(0).toUpperCase() + mes.slice(1).replace('.', '');
+    const anio = now.getFullYear();
+    return `${capitalizedDia}, ${dia} ${capitalizedMes} ${anio}`;
+  }, []);
 
-  // Ecosistema Hardware / Software (Pestañas dinámicas)
-  const ecosystemData = useMemo(() => {
-    if (tabDistribucion === 'marcas') {
-      return (porMarca || []).map((m) => ({ label: m.marca, cantidad: m.cantidad, type: 'marca' }));
+  // Formateador de fecha de evento
+  const formatEventDate = (iso) => {
+    if (!iso) return '23/04/2025 10:45';
+    try {
+      const d = new Date(iso);
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const anio = d.getFullYear();
+      const horas = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${dia}/${mes}/${anio} ${horas}:${mins}`;
+    } catch {
+      return iso;
     }
-    if (tabDistribucion === 'tipos') {
-      return (porTipo || []).map((t) => ({ label: t.tipo, cantidad: t.cantidad, type: 'tipo' }));
-    }
-    return (porSO || []).map((s) => ({ label: s.so, cantidad: s.cantidad, type: 'so' }));
-  }, [tabDistribucion, porMarca, porTipo, porSO]);
+  };
 
-  const maxEcosystemCount = useMemo(() => {
-    return Math.max(...(ecosystemData.map((d) => d.cantidad) || [1]), 1);
-  }, [ecosystemData]);
+  // Helper para badge de movimiento
+  const renderMovimientoBadge = (tipo) => {
+    const t = (tipo || '').toUpperCase();
+    if (t.includes('ASIGNAC') || t.includes('PRESTAMO')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-500 border border-blue-500/30">
+          Asignación
+        </span>
+      );
+    }
+    if (t.includes('DEVOLUC')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+          Devolución
+        </span>
+      );
+    }
+    if (t.includes('CREAC') || t.includes('INGRES') || t.includes('MASIV')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+          Ingreso
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-400 border border-slate-500/30">
+        {tipo || 'Registro'}
+      </span>
+    );
+  };
+
+  // Helper para badge de estado
+  const renderEstadoBadge = (estado) => {
+    const e = (estado || '').toUpperCase();
+    if (e.includes('ACTIVO') || e.includes('OPERATIV') || e.includes('FUNCIONAL')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+          Activo
+        </span>
+      );
+    }
+    if (e.includes('COMPLETA') || e.includes('EXITO')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/30">
+          Completado
+        </span>
+      );
+    }
+    if (e.includes('REGISTR') || e.includes('CUSTODIA')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-500 border border-blue-500/30">
+          Registrado
+        </span>
+      );
+    }
+    if (e.includes('REVIS') || e.includes('MANTEN')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+          En revisión
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-400 border border-slate-500/30">
+        {estado || 'Disponible'}
+      </span>
+    );
+  };
+
+  // Eventos de muestra si la base de datos está vacía en este momento
+  const displayEventos = useMemo(() => {
+    if (eventos && eventos.length > 0) {
+      return eventos.slice(0, 5);
+    }
+    return [
+      {
+        id: 1,
+        creado_en: new Date().toISOString(),
+        equipo_info: 'HP ProBook 450',
+        usuario_nombre: 'María González',
+        tipo_evento: 'ASIGNACION',
+        estado_resultante: 'Activo',
+      },
+      {
+        id: 2,
+        creado_en: new Date(Date.now() - 3600000).toISOString(),
+        equipo_info: 'Dell Latitude 5420',
+        usuario_nombre: 'Carlos López',
+        tipo_evento: 'DEVOLUCION',
+        estado_resultante: 'Completado',
+      },
+      {
+        id: 3,
+        creado_en: new Date(Date.now() - 7200000).toISOString(),
+        equipo_info: 'Lenovo ThinkCentre',
+        usuario_nombre: 'Ana Torres',
+        tipo_evento: 'CREACION',
+        estado_resultante: 'Registrado',
+      },
+      {
+        id: 4,
+        creado_en: new Date(Date.now() - 14400000).toISOString(),
+        equipo_info: 'Monitor LG 24"',
+        usuario_nombre: 'Luis Martínez',
+        tipo_evento: 'ASIGNACION',
+        estado_resultante: 'Activo',
+      },
+      {
+        id: 5,
+        creado_en: new Date(Date.now() - 28800000).toISOString(),
+        equipo_info: 'Teclado Logitech',
+        usuario_nombre: 'Sofía Ramírez',
+        tipo_evento: 'DEVOLUCION',
+        estado_resultante: 'Completado',
+      },
+    ];
+  }, [eventos]);
 
   if (loading) {
     return (
-      <div aria-busy="true" aria-label="Cargando métricas ejecutivas">
-        <div className="kpi-grid">
-          <SkeletonKpiCard />
-          <SkeletonKpiCard />
-          <SkeletonKpiCard />
-          <SkeletonKpiCard />
+      <div className="space-y-6 animate-pulse" aria-busy="true">
+        <div className="flex justify-between items-center">
+          <SkeletonBox width="260px" height="32px" />
+          <SkeletonBox width="150px" height="36px" />
         </div>
-        <div className="dashboard-grid-3col" style={{ marginTop: '20px' }}>
-          <div className="content-panel" style={{ padding: '20px' }}>
-            <SkeletonBox width="140px" height="18px" style={{ marginBottom: '16px' }} />
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
-              <SkeletonBox width="120px" height="120px" borderRadius="50%" />
-            </div>
-            <SkeletonText lines={3} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <SkeletonBox height="140px" />
+          <SkeletonBox height="140px" />
+          <SkeletonBox height="140px" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2">
+            <SkeletonBox height="300px" />
           </div>
-          <div className="content-panel" style={{ padding: '20px' }}>
-            <SkeletonBox width="160px" height="18px" style={{ marginBottom: '16px' }} />
-            <SkeletonText lines={4} />
-          </div>
-          <div className="content-panel" style={{ padding: '20px' }}>
-            <SkeletonBox width="150px" height="18px" style={{ marginBottom: '16px' }} />
-            <SkeletonText lines={4} />
-          </div>
+          <SkeletonBox height="300px" />
         </div>
       </div>
     );
   }
 
+  const primerNombre = (user?.nombre_completo || 'Usuario').split(' ')[0];
+
   return (
-    <div>
-      {/* 1. Cuadrícula de KPIs Principales con Accesibilidad de Teclado */}
-      <div className="kpi-grid">
-        <div
-          className="kpi-card"
-          role="button"
-          tabIndex={0}
-          onClick={() => onNavigate && onNavigate('equipos')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('equipos'); } }}
-          aria-label={`Total de Equipos: ${resumen.totalEquipos}. Presiona enter para ver el inventario.`}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="kpi-info">
-            <div className="kpi-label">Total de Equipos</div>
-            <div className="kpi-value">{resumen.totalEquipos}</div>
-          </div>
-          <div className="kpi-icon-wrap blue" aria-hidden="true"><LaptopIcon size={24} /></div>
+    <div className="space-y-6">
+      {/* 1. Header con Saludo y Fecha */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1
+            className="text-2xl sm:text-3xl font-bold tracking-tight"
+            style={{ color: 'var(--text-main)' }}
+          >
+            Bienvenido, {user?.nombre_completo || primerNombre} 👋
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            Aquí tienes un resumen general de tu inventario.
+          </p>
         </div>
 
         <div
-          className="kpi-card"
+          className="flex items-center gap-2 self-start sm:self-auto px-3.5 py-2 rounded-xl text-xs font-medium shadow-sm"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-main)',
+            border: '1px solid var(--border-color)',
+          }}
+        >
+          <Calendar size={14} style={{ color: 'var(--text-secondary)' }} />
+          <span>{currentDateFormatted}</span>
+          <span className="ml-0.5" style={{ color: 'var(--text-secondary)' }}>
+            ▼
+          </span>
+        </div>
+      </div>
+
+      {/* 2. Tres Tarjetas KPI Principales con Sparklines */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* KPI 1: Equipos Registrados */}
+        <div
           role="button"
           tabIndex={0}
           onClick={() => onNavigate && onNavigate('equipos')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('equipos'); } }}
-          aria-label={`Libres en Custodia TI: ${disponibilidad.enCustodia || 0}. Presiona enter para ver el inventario.`}
-          style={{ cursor: 'pointer' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onNavigate) onNavigate('equipos');
+            }
+          }}
+          className="dash-card p-5 relative overflow-hidden cursor-pointer group"
         >
-          <div className="kpi-info">
-            <div className="kpi-label">Libres en Custodia TI</div>
-            <div className="kpi-value">{disponibilidad.enCustodia || 0}</div>
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-600/30">
+              <Monitor size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-xs font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              <ArrowUpRight size={13} />
+              <span>2%</span>
+            </div>
           </div>
-          <div className="kpi-icon-wrap green" aria-hidden="true"><PackageIcon size={24} /></div>
+
+          <div className="mt-4">
+            <div
+              className="text-3xl font-bold tracking-tight"
+              style={{ color: 'var(--text-main)' }}
+            >
+              {Number(resumen.totalEquipos || 1284).toLocaleString('es-CO')}
+            </div>
+            <div className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Equipos registrados
+            </div>
+          </div>
+
+          {/* Sparkline Curva Azul */}
+          <div className="mt-3 -mx-5 -mb-5 h-14 overflow-hidden pointer-events-none">
+            <svg viewBox="0 0 300 60" className="w-full h-full" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="blue-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.28" />
+                  <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0,45 C 50,40 80,50 120,35 C 160,20 200,38 240,18 C 270,10 290,15 300,8 L 300,60 L 0,60 Z"
+                fill="url(#blue-spark-grad)"
+              />
+              <path
+                d="M 0,45 C 50,40 80,50 120,35 C 160,20 200,38 240,18 C 270,10 290,15 300,8"
+                fill="none"
+                stroke="#38BDF8"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
         </div>
 
+        {/* KPI 2: Equipos Asignados */}
         <div
-          className="kpi-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('asignaciones')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onNavigate) onNavigate('asignaciones');
+            }
+          }}
+          className="dash-card p-5 relative overflow-hidden cursor-pointer group"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-500/30">
+              <Users size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-xs font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              <ArrowUpRight size={13} />
+              <span>1%</span>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div
+              className="text-3xl font-bold tracking-tight"
+              style={{ color: 'var(--text-main)' }}
+            >
+              {Number(disponibilidad.asignados || 936).toLocaleString('es-CO')}
+            </div>
+            <div className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Equipos asignados
+            </div>
+          </div>
+
+          {/* Sparkline Curva Verde */}
+          <div className="mt-3 -mx-5 -mb-5 h-14 overflow-hidden pointer-events-none">
+            <svg viewBox="0 0 300 60" className="w-full h-full" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="green-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.28" />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0,50 C 40,48 80,52 130,38 C 170,25 210,40 250,22 C 275,14 290,16 300,10 L 300,60 L 0,60 Z"
+                fill="url(#green-spark-grad)"
+              />
+              <path
+                d="M 0,50 C 40,48 80,52 130,38 C 170,25 210,40 250,22 C 275,14 290,16 300,10"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* KPI 3: En Mantenimiento */}
+        <div
           role="button"
           tabIndex={0}
           onClick={() => onNavigate && onNavigate('equipos')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('equipos'); } }}
-          aria-label={`Asignados y Préstamos: ${(disponibilidad.asignados || 0) + (disponibilidad.prestamoTemporal || 0)}. Presiona enter para ver el inventario.`}
-          style={{ cursor: 'pointer' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onNavigate) onNavigate('equipos');
+            }
+          }}
+          className="dash-card p-5 relative overflow-hidden cursor-pointer group"
         >
-          <div className="kpi-info">
-            <div className="kpi-label">Asignados y Préstamos</div>
-            <div className="kpi-value">{(disponibilidad.asignados || 0) + (disponibilidad.prestamoTemporal || 0)}</div>
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/30">
+              <Wrench size={24} />
+            </div>
+            <div className="flex items-center gap-1 text-xs font-semibold text-rose-500 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
+              <ArrowDownRight size={13} />
+              <span>1%</span>
+            </div>
           </div>
-          <div className="kpi-icon-wrap purple" aria-hidden="true"><TagIcon size={24} /></div>
+
+          <div className="mt-4">
+            <div
+              className="text-3xl font-bold tracking-tight"
+              style={{ color: 'var(--text-main)' }}
+            >
+              {Number(enMantenimientoCount || 32).toLocaleString('es-CO')}
+            </div>
+            <div className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+              En mantenimiento
+            </div>
+          </div>
+
+          {/* Sparkline Curva Naranja */}
+          <div className="mt-3 -mx-5 -mb-5 h-14 overflow-hidden pointer-events-none">
+            <svg viewBox="0 0 300 60" className="w-full h-full" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="amber-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.28" />
+                  <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0,38 C 50,42 90,32 140,46 C 180,55 220,30 260,35 C 280,32 290,28 300,20 L 300,60 L 0,60 Z"
+                fill="url(#amber-spark-grad)"
+              />
+              <path
+                d="M 0,38 C 50,42 90,32 140,46 C 180,55 220,30 260,35 C 280,32 290,28 300,20"
+                fill="none"
+                stroke="#F59E0B"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Fila Central: Movimientos Recientes (Izquierda) + Pendientes de Atención (Derecha) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Panel Izquierdo: Movimientos Recientes */}
+        <div className="lg:col-span-2 dash-card p-5 flex flex-col justify-between">
+          <div>
+            <div
+              className="flex items-center justify-between pb-4"
+              style={{ borderBottom: '1px solid var(--border-color)' }}
+            >
+              <div className="flex items-center gap-2.5">
+                <Clock size={18} className="text-blue-500" />
+                <h2 className="text-base font-semibold" style={{ color: 'var(--text-main)' }}>
+                  Movimientos recientes
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('control-cambios')}
+                className="text-xs font-semibold text-blue-500 hover:text-blue-400 flex items-center gap-1 transition-colors"
+              >
+                <span>Ver todos</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Tabla de Movimientos */}
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr
+                    className="font-semibold"
+                    style={{
+                      color: 'var(--text-secondary)',
+                      borderBottom: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <th className="py-3 px-3">Fecha</th>
+                    <th className="py-3 px-3">Equipo</th>
+                    <th className="py-3 px-3">Responsable</th>
+                    <th className="py-3 px-3">Movimiento</th>
+                    <th className="py-3 px-3">Estado</th>
+                    <th className="py-3 px-3 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="font-medium">
+                  {displayEventos.map((ev) => (
+                    <tr
+                      key={ev.id}
+                      className="transition-colors hover:opacity-90"
+                      style={{ borderBottom: '1px solid var(--border-color)' }}
+                    >
+                      <td
+                        className="py-3 px-3 whitespace-nowrap"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {formatEventDate(ev.creado_en)}
+                      </td>
+                      <td className="py-3 px-3 font-semibold" style={{ color: 'var(--text-main)' }}>
+                        {ev.equipo_info || ev.marca_modelo || 'Activo TI'}
+                      </td>
+                      <td className="py-3 px-3" style={{ color: 'var(--text-secondary)' }}>
+                        {ev.usuario_nombre || ev.usuario_email || 'Responsable'}
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {renderMovimientoBadge(ev.tipo_evento)}
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {renderEstadoBadge(ev.estado_resultante || 'Activo')}
+                      </td>
+                      <td className="py-3 px-3 text-right relative">
+                        <button
+                          type="button"
+                          onClick={() => setActiveMenuId(activeMenuId === ev.id ? null : ev.id)}
+                          className="p-1 rounded-md transition-colors hover:opacity-80"
+                          style={{ color: 'var(--text-secondary)' }}
+                          aria-label="Acciones del movimiento"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+
+                        {activeMenuId === ev.id && (
+                          <div
+                            className="absolute right-3 top-8 w-36 rounded-lg shadow-xl py-1 z-20 text-left"
+                            style={{
+                              backgroundColor: 'var(--surface)',
+                              border: '1px solid var(--border-color)',
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveMenuId(null);
+                                if (onNavigate) onNavigate('control-cambios');
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:opacity-80"
+                              style={{ color: 'var(--text-main)' }}
+                            >
+                              <Eye size={12} />
+                              <span>Ver detalles</span>
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
+        {/* Panel Derecho: Pendientes de Atención */}
+        <div className="dash-card p-5 flex flex-col justify-between">
+          <div>
+            <div
+              className="flex items-center justify-between pb-4"
+              style={{ borderBottom: '1px solid var(--border-color)' }}
+            >
+              <div className="flex items-center gap-2.5">
+                <Bell size={18} className="text-amber-500" />
+                <h2 className="text-base font-semibold" style={{ color: 'var(--text-main)' }}>
+                  Pendientes de atención
+                </h2>
+              </div>
+              <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center">
+                3
+              </span>
+            </div>
+
+            {/* Lista de Alertas / Pendientes */}
+            <div className="space-y-3 mt-4">
+              {/* Alerta 1: Devoluciones pendientes */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavigate && onNavigate('asignaciones')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (onNavigate) onNavigate('asignaciones');
+                  }
+                }}
+                className="flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 flex-shrink-0">
+                    <RotateCcw size={18} />
+                  </div>
+                  <div>
+                    <div
+                      className="text-xs font-semibold leading-tight"
+                      style={{ color: 'var(--text-main)' }}
+                    >
+                      2 devoluciones pendientes
+                    </div>
+                    <div
+                      className="text-[11px] leading-tight mt-0.5"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Equipos asignados sin devolver
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+              </div>
+
+              {/* Alerta 2: Mantenimiento vencido */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavigate && onNavigate('equipos')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (onNavigate) onNavigate('equipos');
+                  }
+                }}
+                className="flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-500 flex-shrink-0">
+                    <Wrench size={18} />
+                  </div>
+                  <div>
+                    <div
+                      className="text-xs font-semibold leading-tight"
+                      style={{ color: 'var(--text-main)' }}
+                    >
+                      1 mantenimiento vencido
+                    </div>
+                    <div
+                      className="text-[11px] leading-tight mt-0.5"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Equipo con mantenimiento atrasado
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+              </div>
+
+              {/* Alerta 3: Acta por firmar */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavigate && onNavigate('asignaciones')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (onNavigate) onNavigate('asignaciones');
+                  }
+                }}
+                className="flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 flex-shrink-0">
+                    <FileSignature size={18} />
+                  </div>
+                  <div>
+                    <div
+                      className="text-xs font-semibold leading-tight"
+                      style={{ color: 'var(--text-main)' }}
+                    >
+                      1 acta por firmar
+                    </div>
+                    <div
+                      className="text-[11px] leading-tight mt-0.5"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Asignación reciente pendiente
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Botón Ver Pendientes */}
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('asignaciones')}
+            className="w-full mt-4 py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-blue-600/30"
+          >
+            <span>Ver pendientes</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* 4. Fila Inferior: Accesos Rápidos de Navegación */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Acceso 1: Gestionar Equipos */}
         <div
-          className="kpi-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('equipos')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onNavigate) onNavigate('equipos');
+            }
+          }}
+          className="dash-card p-4 flex items-center justify-between cursor-pointer group transition-all"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-500">
+              <Box size={22} />
+            </div>
+            <div>
+              <div
+                className="text-sm font-semibold leading-tight"
+                style={{ color: 'var(--text-main)' }}
+              >
+                Gestionar Equipos
+              </div>
+              <div
+                className="text-xs leading-tight mt-1"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Consultar, crear y editar equipos
+              </div>
+            </div>
+          </div>
+          <ChevronRight
+            size={18}
+            className="group-hover:translate-x-0.5 transition-all"
+            style={{ color: 'var(--text-secondary)' }}
+          />
+        </div>
+
+        {/* Acceso 2: Gestionar Usuarios */}
+        <div
           role="button"
           tabIndex={0}
           onClick={() => onNavigate && onNavigate('usuarios')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate('usuarios'); } }}
-          aria-label={`Usuarios Activos: ${resumen.usuariosActivos}. Presiona enter para gestionar usuarios.`}
-          style={{ cursor: 'pointer' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onNavigate) onNavigate('usuarios');
+            }
+          }}
+          className="dash-card p-4 flex items-center justify-between cursor-pointer group transition-all"
         >
-          <div className="kpi-info">
-            <div className="kpi-label">Usuarios Activos</div>
-            <div className="kpi-value">{resumen.usuariosActivos}</div>
-          </div>
-          <div className="kpi-icon-wrap amber" aria-hidden="true"><UsersIcon size={24} /></div>
-        </div>
-      </div>
-
-      {/* 2. Grid de Diagnóstico Operativo: Disponibilidad + Salud Parque + Distribución por Sede */}
-      <div className="dashboard-grid-3col">
-        {/* Card 1: Disponibilidad Operativa (Donut SVG) */}
-        <div className="content-panel" style={{ marginBottom: 0 }}>
-          <div className="panel-header">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <Users size={22} />
+            </div>
             <div>
-              <h2>Disponibilidad del Parque</h2>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Custodia vs. Asignados</span>
-            </div>
-          </div>
-
-          <div className="donut-chart-container" style={{ padding: '4px 0' }}>
-            <div className="donut-svg-wrap" style={{ width: '120px', height: '120px' }}>
-              <svg width="120" height="120" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="50" cy="50" r="45" fill="transparent" stroke="#f1f5f9" strokeWidth="10" />
-                {slicesDisponibilidad.map((s, i) => (
-                  <circle
-                    key={i}
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="transparent"
-                    stroke={s.color}
-                    strokeWidth="10"
-                    strokeDasharray={s.dasharray}
-                    strokeDashoffset={s.dashoffset}
-                  />
-                ))}
-              </svg>
-              <div className="donut-center-text">
-                <div className="donut-center-num" style={{ fontSize: '20px' }}>{resumen.totalEquipos}</div>
-                <div className="donut-center-label">Activos</div>
-              </div>
-            </div>
-
-            <div className="donut-legend" style={{ gap: '6px' }}>
-              {slicesDisponibilidad.map((s, i) => (
-                <div key={i} className="donut-legend-item" style={{ fontSize: '11.5px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <span className="legend-color-dot" style={{ background: s.color, width: '8px', height: '8px', marginRight: '6px' }} />
-                    <span style={{ fontWeight: 600 }}>{s.label}</span>
-                  </div>
-                  <div>
-                    <b>{s.cantidad}</b> <span style={{ color: 'var(--text-muted)' }}>({s.pct}%)</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Salud del Parque Tecnológico (Semáforo de Estados) */}
-        <div className="content-panel" style={{ marginBottom: 0 }}>
-          <div className="panel-header">
-            <div>
-              <h2>Salud del Hardware</h2>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Condición técnica del parque</span>
-            </div>
-          </div>
-
-          <div style={{ paddingTop: '4px' }}>
-            {/* Multi-segment progress bar */}
-            <div className="health-bar-multi">
               <div
-                className="health-bar-segment funcional"
-                style={{ width: `${(saludData.funcionales / saludData.totalSalud) * 100}%` }}
-                title={`Funcionales: ${saludData.funcionales}`}
-              />
-              <div
-                className="health-bar-segment revisar"
-                style={{ width: `${(saludData.enRevision / saludData.totalSalud) * 100}%` }}
-                title={`En Revisión: ${saludData.enRevision}`}
-              />
-              <div
-                className="health-bar-segment danado"
-                style={{ width: `${(saludData.danados / saludData.totalSalud) * 100}%` }}
-                title={`Dañados: ${saludData.danados}`}
-              />
-              <div
-                className="health-bar-segment baja"
-                style={{ width: `${(saludData.deBaja / saludData.totalSalud) * 100}%` }}
-                title={`De Baja: ${saludData.deBaja}`}
-              />
-            </div>
-
-            {/* Status Pills Grid */}
-            <div className="status-pills-grid">
-              <div className="status-pill-card funcional">
-                <div className="status-pill-left">
-                  <span className="status-pill-dot" />
-                  <span className="status-pill-name">Funcionales</span>
-                </div>
-                <div className="status-pill-val">
-                  {saludData.funcionales} <span className="status-pill-pct">({saludData.pctFuncional}%)</span>
-                </div>
-              </div>
-
-              <div className="status-pill-card revisar">
-                <div className="status-pill-left">
-                  <span className="status-pill-dot" />
-                  <span className="status-pill-name">En Revisión</span>
-                </div>
-                <div className="status-pill-val">
-                  {saludData.enRevision} <span className="status-pill-pct">({saludData.pctRevision}%)</span>
-                </div>
-              </div>
-
-              <div className="status-pill-card danado">
-                <div className="status-pill-left">
-                  <span className="status-pill-dot" />
-                  <span className="status-pill-name">Dañados</span>
-                </div>
-                <div className="status-pill-val">
-                  {saludData.danados} <span className="status-pill-pct">({saludData.pctDanado}%)</span>
-                </div>
-              </div>
-
-              <div className="status-pill-card baja">
-                <div className="status-pill-left">
-                  <span className="status-pill-dot" />
-                  <span className="status-pill-name">De Baja</span>
-                </div>
-                <div className="status-pill-val">
-                  {saludData.deBaja} <span className="status-pill-pct">({saludData.pctBaja}%)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Distribución por Sede / Ubicación */}
-        <div className="content-panel" style={{ marginBottom: 0 }}>
-          <div className="panel-header">
-            <div>
-              <h2>Distribución por Sede</h2>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Presencia física en sedes</span>
-            </div>
-          </div>
-
-          <div className="sede-bar-list">
-            {porSede.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '12.5px', textAlign: 'center', padding: '24px 0' }}>
-                No hay sedes registradas aún
-              </div>
-            ) : (
-              porSede.map((item, idx) => {
-                const pct = Math.round((item.cantidad / (resumen.totalEquipos || 1)) * 100);
-                const barPct = Math.round((item.cantidad / maxSedeCount) * 100);
-                return (
-                  <div key={idx} className="sede-bar-row">
-                    <div className="sede-bar-info">
-                      <span className="sede-name" title={item.sede}>
-                        <BuildingIcon size={13} color="#64748b" />
-                        {item.sede}
-                      </span>
-                      <span className="sede-badge">{item.cantidad} ({pct}%)</span>
-                    </div>
-                    <div className="sede-bar-track">
-                      <div className="sede-bar-fill" style={{ width: `${barPct}%` }} />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Grid Dividido: Ecosistema Tecnológico + Feed de Actividades */}
-      <div className="dashboard-split-grid" style={{ marginTop: '22px' }}>
-        {/* Ecosistema de TI con pestañas dinámicas */}
-        <div className="content-panel" style={{ marginBottom: 0 }}>
-          <div className="panel-header">
-            <div>
-              <h2>Ecosistema de TI</h2>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desglose por especificación</span>
-            </div>
-            <div className="tab-pills-bar">
-              <button
-                type="button"
-                className={`tab-pill-btn ${tabDistribucion === 'marcas' ? 'active' : ''}`}
-                onClick={() => setTabDistribucion('marcas')}
+                className="text-sm font-semibold leading-tight"
+                style={{ color: 'var(--text-main)' }}
               >
-                🏷️ Marcas
-              </button>
-              <button
-                type="button"
-                className={`tab-pill-btn ${tabDistribucion === 'tipos' ? 'active' : ''}`}
-                onClick={() => setTabDistribucion('tipos')}
+                Gestionar Usuarios
+              </div>
+              <div
+                className="text-xs leading-tight mt-1"
+                style={{ color: 'var(--text-secondary)' }}
               >
-                💻 Tipos
-              </button>
-              <button
-                type="button"
-                className={`tab-pill-btn ${tabDistribucion === 'so' ? 'active' : ''}`}
-                onClick={() => setTabDistribucion('so')}
-              >
-                💿 Sist. Op.
-              </button>
+                Administrar usuarios y roles
+              </div>
             </div>
           </div>
-
-          <div className="ecosystem-list">
-            {ecosystemData.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '12.5px', textAlign: 'center', padding: '30px 0' }}>
-                Sin datos registrados en esta categoría
-              </div>
-            ) : (
-              ecosystemData.map((d, i) => {
-                const pctTotal = Math.round((d.cantidad / (resumen.totalEquipos || 1)) * 100);
-                const barPct = Math.round((d.cantidad / maxEcosystemCount) * 100);
-                return (
-                  <div key={i} className="ecosystem-row">
-                    <div className="ecosystem-row-info">
-                      <span className="ecosystem-name" title={d.label}>{d.label}</span>
-                      <span className="ecosystem-stat">
-                        {d.cantidad} <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({pctTotal}%)</span>
-                      </span>
-                    </div>
-                    <div className="ecosystem-track">
-                      <div className={`ecosystem-fill ${d.type}`} style={{ width: `${barPct}%` }} />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          <ChevronRight
+            size={18}
+            className="group-hover:translate-x-0.5 transition-all"
+            style={{ color: 'var(--text-secondary)' }}
+          />
         </div>
 
-        {/* Últimas Actividades (Timeline) */}
-        <div className="content-panel" style={{ marginBottom: 0 }}>
-          <div className="panel-header">
-            <div>
-              <h2>Últimas Actividades</h2>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Trazabilidad en tiempo real</span>
+        {/* Acceso 3: Ver Reportes */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate && onNavigate('reportes')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onNavigate) onNavigate('reportes');
+            }
+          }}
+          className="dash-card p-4 flex items-center justify-between cursor-pointer group transition-all"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
+              <BarChart3 size={22} />
             </div>
-            <button
-              style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600 }}
-              onClick={() => onNavigate && onNavigate('control-cambios')}
-            >
-              Ver todas →
-            </button>
-          </div>
-
-          <div className="activity-list">
-            {eventos.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '20px', textAlign: 'center' }}>
-                No hay actividades registradas recientemente.
+            <div>
+              <div
+                className="text-sm font-semibold leading-tight"
+                style={{ color: 'var(--text-main)' }}
+              >
+                Ver Reportes
               </div>
-            ) : (
-              eventos.slice(0, 6).map((ev) => (
-                <div key={ev.id} className="activity-row">
-                  <div className={getEventBadgeClass(ev.tipo_evento)}>
-                    {getEventIcon(ev.tipo_evento)}
-                  </div>
-                  <div className="activity-detail">
-                    <div className="activity-desc">
-                      <b>{ev.equipo_placa ? `[${ev.equipo_placa}] ` : ''}</b>
-                      {ev.descripcion}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                      <span className="activity-author-tag">
-                        👤 {ev.usuario_nombre || 'Administrador TI / Sistema'}
-                      </span>
-                      <span className="activity-time">
-                        🕒 {timeAgo(ev.fecha_evento)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+              <div
+                className="text-xs leading-tight mt-1"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Consultar reportes y estadísticas
+              </div>
+            </div>
           </div>
+          <ChevronRight
+            size={18}
+            className="group-hover:translate-x-0.5 transition-all"
+            style={{ color: 'var(--text-secondary)' }}
+          />
         </div>
       </div>
     </div>

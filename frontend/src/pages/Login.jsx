@@ -36,17 +36,25 @@ export default function Login() {
             <span>Plataforma DevSecOps · Activos TI v2.0</span>
           </div>
 
-          {/* Logo y Título Principal VaultTI */}
+          {/* Logo y Título Principal Inventario TI */}
           <div className="login-brand-header">
-            <div className="login-brand-logo">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="rgba(255,255,255,0.18)" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 8V16M8 12H16" stroke="#93c5fd" strokeWidth="2.2" strokeLinecap="round"/>
+            <div className="login-brand-logo" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
+              <svg width="42" height="42" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4L34 12V28L20 36L6 28V12L20 4Z" fill="#0F172A" stroke="#38BDF8" strokeWidth="1.5" />
+                <path d="M20 4L34 12L20 20L6 12L20 4Z" fill="#3B82F6" />
+                <path d="M6 12L20 20V36L6 28V12Z" fill="#2563EB" />
+                <path d="M34 12L20 20V36L34 28V12Z" fill="#1D4ED8" />
+                <path d="M20 20V36M20 20L6 12M20 20L34 12" stroke="#60A5FA" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h1 className="login-hero-title">
-              VaultTI
-            </h1>
+            <div>
+              <h1 className="login-hero-title" style={{ fontSize: '32px' }}>
+                Inventario TI
+              </h1>
+              <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500, marginTop: '2px' }}>
+                Pry_CRUD_INVENTARIO
+              </div>
+            </div>
           </div>
 
           <p className="login-hero-sub">
@@ -152,13 +160,13 @@ export default function Login() {
           {error && (
             <div
               style={{
-                background: 'var(--danger-light)',
-                color: '#991b1b',
+                background: 'var(--danger-bg)',
+                color: 'var(--danger-color)',
                 padding: '11px 14px',
                 borderRadius: '10px',
                 marginBottom: '18px',
                 fontSize: '13px',
-                border: '1px solid #fecaca',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -264,7 +272,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #f1f5f9', textAlign: 'center', fontSize: '11.5px', color: '#94a3b8' }}>
+          <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid var(--border-color)', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
             <div>🔒 Conexión segura con cifrado TLS/HTTPS · Red Corporativa</div>
             <div style={{ marginTop: '8px' }}>
               <button

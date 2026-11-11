@@ -58,7 +58,7 @@ export default function ControlDeCambios() {
       case 'BAJA':
         return <span className="badge badge-baja"><ArchiveIcon size={12} /> DADO DE BAJA</span>;
       case 'MODIFICACION':
-        return <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}><EditIcon size={12} /> MODIFICACIÓN</span>;
+        return <span className="badge" style={{ background: 'var(--info-bg)', color: 'var(--info-color)' }}><EditIcon size={12} /> MODIFICACIÓN</span>;
       default:
         return <span className="badge">{tipo}</span>;
     }

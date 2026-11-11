@@ -1,29 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import client from '../api/client';
 import {
-  LayoutDashboardIcon,
-  LaptopIcon,
-  MonitorIcon,
-  UsersIcon,
-  PackageIcon,
-  ClockIcon,
-  RotateCcwIcon,
-  PrinterIcon,
-  TabletIcon,
-  HeadphonesIcon,
-  ZapIcon,
-  ArchiveIcon,
-  HistoryIcon,
-  UploadCloudIcon,
-  ActivityIcon,
-  FileTextIcon,
-  AlertTriangleIcon,
-  XIcon,
-} from './Icons';
+  LayoutDashboard,
+  Monitor,
+  Users,
+  BarChart3,
+  ShieldCheck,
+  PlusCircle,
+  Settings,
+  Moon,
+  Sun,
+  X,
+  LogOut,
+  Laptop,
+  AlertTriangle,
+  FileText,
+  Lock,
+} from 'lucide-react';
 
-export default function Sidebar({ currentView, setView, moduloActivo, setModuloActivo, isOpen, onClose, onOpenPrivacy }) {
-  const { user, isAdmin, isTecnico, canManageInventory, canManageUsers, logout } = useAuth();
+export default function Sidebar({
+  currentView,
+  setView,
+  moduloActivo,
+  setModuloActivo,
+  isOpen,
+  onClose,
+  onOpenPrivacy,
+}) {
+  const { user, canManageInventory, canManageUsers, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [conteos, setConteos] = useState({
     todos: 0,
     equipos_prestamos: 0,
@@ -40,7 +47,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
   useEffect(() => {
     if (canManageInventory) {
       cargarConteos();
-      const interval = setInterval(cargarConteos, 15000);
+      const interval = setInterval(cargarConteos, 20000);
       return () => clearInterval(interval);
     }
   }, [canManageInventory]);
@@ -53,7 +60,7 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
         setConteos(datos);
       }
     } catch (e) {
-      // Silencioso para no bloquear la interfaz
+      // Silencioso
     }
   };
 
@@ -62,289 +69,286 @@ export default function Sidebar({ currentView, setView, moduloActivo, setModuloA
     if (onClose) onClose();
   };
 
-  const handleSelectModulo = (modKey) => {
-    setModuloActivo(modKey);
+  const handleSelectEquipos = () => {
+    if (moduloActivo !== 'todos') setModuloActivo('todos');
     setView('equipos');
     if (onClose) onClose();
   };
 
   return (
-    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-      <div className="sidebar-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="sidebar-logo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="rgba(255,255,255,0.18)" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12 8V16M8 12H16" stroke="#93c5fd" strokeWidth="2.2" strokeLinecap="round"/>
+    <aside
+      className={`fixed top-0 bottom-0 left-0 z-40 w-64 flex flex-col transition-transform duration-200 ease-in-out md:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}
+      style={{
+        backgroundColor: '#0D1524',
+        borderRight: '1px solid #1E293B',
+      }}
+    >
+      {/* 1. Header con Logo Cubo 3D Isométrico */}
+      <div className="flex items-center justify-between px-5 py-5 border-b border-slate-800/80">
+        <div className="flex items-center gap-3">
+          {/* Logo Cubo Isométrico 3D (Azul degradado) */}
+          <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center">
+            <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M20 4L34 12V28L20 36L6 28V12L20 4Z"
+                fill="#0F172A"
+                stroke="#38BDF8"
+                strokeWidth="1.5"
+              />
+              <path
+                d="M20 4L34 12L20 20L6 12L20 4Z"
+                fill="url(#cube-top)"
+              />
+              <path
+                d="M6 12L20 20V36L6 28V12Z"
+                fill="url(#cube-left)"
+              />
+              <path
+                d="M34 12L20 20V36L34 28V12Z"
+                fill="url(#cube-right)"
+              />
+              <path
+                d="M20 20V36M20 20L6 12M20 20L34 12"
+                stroke="#60A5FA"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <defs>
+                <linearGradient id="cube-top" x1="6" y1="4" x2="34" y2="20" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#60A5FA" />
+                  <stop offset="1" stopColor="#3B82F6" />
+                </linearGradient>
+                <linearGradient id="cube-left" x1="6" y1="12" x2="20" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#2563EB" />
+                  <stop offset="1" stopColor="#1D4ED8" />
+                </linearGradient>
+                <linearGradient id="cube-right" x1="20" y1="20" x2="34" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#1E40AF" />
+                  <stop offset="1" stopColor="#172554" />
+                </linearGradient>
+              </defs>
             </svg>
           </div>
-          <div>
-            <div className="sidebar-title">VaultTI</div>
-            <div className="sidebar-subtitle">
-              <span className="sidebar-pulse-dot"></span>
-              DevSecOps v2.0
-            </div>
+
+          <div className="flex flex-col">
+            <span className="font-semibold text-white text-base leading-tight tracking-tight">
+              Inventario TI
+            </span>
+            <span className="text-[11px] font-medium text-slate-400 leading-tight mt-0.5">
+              Pry_CRUD_INVENTARIO
+            </span>
           </div>
         </div>
+
         {onClose && (
           <button
             type="button"
-            className="sidebar-close-btn"
+            className="md:hidden text-slate-400 hover:text-white p-1 rounded-md"
             onClick={onClose}
-            aria-label="Cerrar Menú"
+            aria-label="Cerrar navegación"
           >
-            <XIcon size={18} />
+            <X size={20} />
           </button>
         )}
       </div>
 
-      <nav className="sidebar-nav">
-        {/* Vista para Empleado */}
+      {/* 2. Lista de Navegación Principal */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {!canManageInventory ? (
+          /* Rol Empleado */
           <>
-            <div className="nav-section-title">Mi Portal</div>
+            <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Mi Portal
+            </div>
             <button
-              className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
               onClick={() => handleNav('dashboard')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'dashboard'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><LayoutDashboardIcon size={18} /></span>
+              <LayoutDashboard size={18} />
               <span>Inicio</span>
             </button>
+
             <button
-              className={`nav-link ${currentView === 'mis-equipos' ? 'active' : ''}`}
               onClick={() => handleNav('mis-equipos')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'mis-equipos'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><LaptopIcon size={18} /></span>
+              <Laptop size={18} />
               <span>Mis Equipos</span>
             </button>
+
             <button
-              className={`nav-link ${currentView === 'reportar-fallo' ? 'active' : ''}`}
               onClick={() => handleNav('reportar-fallo')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'reportar-fallo'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><AlertTriangleIcon size={18} /></span>
+              <AlertTriangle size={18} />
               <span>Reportar Fallo</span>
             </button>
           </>
         ) : (
-          /* Vista para Administrador y Técnico */
+          /* Administrador y Técnico (Mockup Logistics) */
           <>
-            <div className="nav-section-title">Principal</div>
             <button
-              className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
               onClick={() => handleNav('dashboard')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'dashboard'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><LayoutDashboardIcon size={18} /></span>
+              <LayoutDashboard size={18} />
               <span>Inicio</span>
             </button>
 
             <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'todos' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('todos')}
+              onClick={handleSelectEquipos}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'equipos'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><MonitorIcon size={18} /></span>
-              <span>Inventario General</span>
-              {conteos.todos > 0 && <span className="nav-badge">{conteos.todos}</span>}
+              <div className="flex items-center gap-3.5">
+                <Monitor size={18} />
+                <span>Equipos</span>
+              </div>
+              {conteos.todos > 0 && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                    currentView === 'equipos'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {conteos.todos}
+                </span>
+              )}
             </button>
 
             <button
-              className={`nav-link ${currentView === 'asignaciones' ? 'active' : ''}`}
               onClick={() => handleNav('asignaciones')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'asignaciones'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><ZapIcon size={18} /></span>
+              <Users size={18} />
               <span>Asignaciones</span>
             </button>
 
-            <div className="nav-section-title">Módulos de Hardware</div>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'equipos_prestamos' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('equipos_prestamos')}
-              title="Equipos entregados a empleados de la empresa de manera indefinida"
-            >
-              <span className="nav-icon"><UsersIcon size={18} /></span>
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1.2' }}>
-                <span>Equipos en Préstamo</span>
-                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 500 }}>Dotación Indefinida</span>
-              </span>
-              {conteos.equipos_prestamos > 0 && <span className="nav-badge">{conteos.equipos_prestamos}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'alquiler' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('alquiler')}
-            >
-              <span className="nav-icon"><PackageIcon size={18} /></span>
-              <span>Alquiler</span>
-              {conteos.alquiler > 0 && <span className="nav-badge">{conteos.alquiler}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'prestamos' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('prestamos')}
-              title="Equipos prestados temporalmente por unos días que tienen que devolver"
-            >
-              <span className="nav-icon"><ClockIcon size={18} /></span>
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1.2' }}>
-                <span>Préstamos</span>
-                <span style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 500 }}>Temporales (Retorno)</span>
-              </span>
-              {conteos.prestamos > 0 && <span className="nav-badge warn">{conteos.prestamos}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'devoluciones' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('devoluciones')}
-            >
-              <span className="nav-icon"><RotateCcwIcon size={18} /></span>
-              <span>Devoluciones</span>
-              {conteos.devoluciones > 0 && <span className="nav-badge">{conteos.devoluciones}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'impresoras' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('impresoras')}
-            >
-              <span className="nav-icon"><PrinterIcon size={18} /></span>
-              <span>Impresoras</span>
-              {conteos.impresoras > 0 && <span className="nav-badge">{conteos.impresoras}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'elementos' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('elementos')}
-            >
-              <span className="nav-icon"><TabletIcon size={18} /></span>
-              <span>Elementos</span>
-              {conteos.elementos > 0 && <span className="nav-badge">{conteos.elementos}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'perifericos' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('perifericos')}
-            >
-              <span className="nav-icon"><HeadphonesIcon size={18} /></span>
-              <span>Periféricos</span>
-              {conteos.perifericos > 0 && <span className="nav-badge">{conteos.perifericos}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'ups' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('ups')}
-            >
-              <span className="nav-icon"><ZapIcon size={18} /></span>
-              <span>UPS</span>
-              {conteos.ups > 0 && <span className="nav-badge">{conteos.ups}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'equipos' && moduloActivo === 'bajas' ? 'active' : ''}`}
-              onClick={() => handleSelectModulo('bajas')}
-            >
-              <span className="nav-icon"><ArchiveIcon size={18} /></span>
-              <span>Bajas</span>
-              {conteos.bajas > 0 && <span className="nav-badge">{conteos.bajas}</span>}
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'control-cambios' ? 'active' : ''}`}
-              onClick={() => handleNav('control-cambios')}
-            >
-              <span className="nav-icon"><HistoryIcon size={18} /></span>
-              <span>Control de Cambios</span>
-            </button>
-
-            <div className="nav-section-title">Gestión y Tareas</div>
-
             {canManageUsers && (
               <button
-                className={`nav-link ${currentView === 'usuarios' ? 'active' : ''}`}
                 onClick={() => handleNav('usuarios')}
+                className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  currentView === 'usuarios'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                }`}
               >
-                <span className="nav-icon"><UsersIcon size={18} /></span>
+                <Users size={18} />
                 <span>Usuarios</span>
               </button>
             )}
 
             <button
-              className={`nav-link ${currentView === 'carga-masiva' ? 'active' : ''}`}
-              onClick={() => handleNav('carga-masiva')}
-            >
-              <span className="nav-icon"><UploadCloudIcon size={18} /></span>
-              <span>Carga Masiva (Worker)</span>
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'tareas' ? 'active' : ''}`}
-              onClick={() => handleNav('tareas')}
-            >
-              <span className="nav-icon"><ActivityIcon size={18} /></span>
-              <span>Tareas Worker</span>
-            </button>
-
-            <button
-              className={`nav-link ${currentView === 'reportes' ? 'active' : ''}`}
               onClick={() => handleNav('reportes')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'reportes'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
-              <span className="nav-icon"><FileTextIcon size={18} /></span>
+              <BarChart3 size={18} />
               <span>Reportes</span>
+            </button>
+
+            <button
+              onClick={() => handleNav('control-cambios')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'control-cambios'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
+            >
+              <ShieldCheck size={18} />
+              <span>Auditoría</span>
+            </button>
+
+            <button
+              onClick={() => handleNav('carga-masiva')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'carga-masiva'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
+            >
+              <PlusCircle size={18} />
+              <span>Carga Masiva</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (onOpenPrivacy) onOpenPrivacy();
+                if (onClose) onClose();
+              }}
+              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+            >
+              <Settings size={18} />
+              <span>Configuración</span>
             </button>
           </>
         )}
       </nav>
 
-      <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)' }}>
-        <button
-          type="button"
-          onClick={() => {
-            if (onOpenPrivacy) onOpenPrivacy();
-            if (onClose) onClose();
+      {/* 3. Footer con Switch de Modo Oscuro y Versión */}
+      <div className="px-4 py-4 border-t border-slate-800/80 space-y-3">
+        {/* Toggle Modo Oscuro */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={toggleTheme}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleTheme();
+            }
           }}
-          className="btn-sidebar-privacy"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            padding: '4px 0',
-            width: '100%',
-            textAlign: 'left',
-          }}
-          title="Ver Política de Privacidad (Ley 1581 de 2012) y Términos"
+          className="theme-switch-container flex items-center justify-between p-2 rounded-xl cursor-pointer hover:bg-slate-800/40 transition-colors"
+          aria-label={`Cambiar modo. Modo actual: ${isDark ? 'oscuro' : 'claro'}`}
         >
-          <span style={{ fontSize: '12px' }}>🛡️</span>
-          <span>Privacidad & Términos (Ley 1581)</span>
-        </button>
-      </div>
-
-      <div className="sidebar-footer">
-        <div className="user-profile-box">
-          <div className="user-avatar-wrap">
-            <div className="user-avatar">
-              {(user?.nombre_completo || 'U').charAt(0).toUpperCase()}
-            </div>
-            <span className="user-online-beacon"></span>
+          <div className="flex items-center gap-2.5 text-sm font-medium text-slate-300">
+            {isDark ? (
+              <Moon size={16} className="text-slate-400" />
+            ) : (
+              <Sun size={16} className="text-amber-400" />
+            )}
+            <span>Modo oscuro</span>
           </div>
-          <div className="user-meta">
-            <div className="user-name" title={user?.nombre_completo}>
-              {user?.nombre_completo || user?.email}
-            </div>
-            <span className={`user-role-tag ${(user?.rol || 'empleado').toLowerCase()}`}>
-              {user?.rol}
-            </span>
+
+          <div className={`switch-track ${isDark ? 'active' : ''}`}>
+            <div className="switch-thumb" />
           </div>
         </div>
-        <button className="btn-logout" onClick={logout} title="Cerrar sesión">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          <span>Salir</span>
-        </button>
+
+        {/* Versión */}
+        <div className="text-center text-xs text-slate-500 font-medium">
+          v1.0.0
+        </div>
       </div>
     </aside>
   );
