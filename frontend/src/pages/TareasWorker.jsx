@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import {
+  FileTextIcon,
+  RefreshCwIcon,
+  CheckIcon,
+  AlertTriangleIcon,
+  SearchIcon,
+} from '../components/Icons';
 
 export default function TareasWorker({ onNavigate }) {
   const [tareas, setTareas] = useState([]);
@@ -46,7 +53,7 @@ export default function TareasWorker({ onNavigate }) {
               Histórico acumulado
             </div>
           </div>
-          <div className="kpi-icon-wrap blue">📋</div>
+          <div className="kpi-icon-wrap blue"><FileTextIcon size={20} /></div>
         </div>
 
         <div className="kpi-card">
@@ -59,7 +66,7 @@ export default function TareasWorker({ onNavigate }) {
               Worker en ejecución
             </div>
           </div>
-          <div className="kpi-icon-wrap amber">⚙️</div>
+          <div className="kpi-icon-wrap amber"><RefreshCwIcon size={20} /></div>
         </div>
 
         <div className="kpi-card">
@@ -72,7 +79,7 @@ export default function TareasWorker({ onNavigate }) {
               Procesadas e insertadas
             </div>
           </div>
-          <div className="kpi-icon-wrap green">✅</div>
+          <div className="kpi-icon-wrap green"><CheckIcon size={20} /></div>
         </div>
 
         <div className="kpi-card">
@@ -85,12 +92,12 @@ export default function TareasWorker({ onNavigate }) {
               Con excepciones
             </div>
           </div>
-          <div className="kpi-icon-wrap purple">⚠️</div>
+          <div className="kpi-icon-wrap purple"><AlertTriangleIcon size={20} /></div>
         </div>
       </div>
 
       {/* Barra de Control de Cola */}
-      <div className="card-header" style={{ marginBottom: '16px' }}>
+      <div className="card-header" style={{ marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Monitor de Procesamiento Asíncrono</h2>
           <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
@@ -98,7 +105,7 @@ export default function TareasWorker({ onNavigate }) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -109,7 +116,7 @@ export default function TareasWorker({ onNavigate }) {
           </label>
 
           <button className="btn btn-secondary" onClick={cargarTareas}>
-            🔄 Refrescar Ahora
+            <RefreshCwIcon size={14} /> Refrescar Ahora
           </button>
 
           {onNavigate && (
@@ -171,7 +178,7 @@ export default function TareasWorker({ onNavigate }) {
                           : 'badge-revisar'
                       }`}
                     >
-                      {t.estado === 'EN_PROCESO' ? '⚙️ EN PROCESO' : t.estado}
+                      {t.estado === 'EN_PROCESO' ? 'EN PROCESO' : t.estado}
                     </span>
                   </td>
                   <td>
@@ -197,7 +204,7 @@ export default function TareasWorker({ onNavigate }) {
                       className="btn btn-secondary btn-sm"
                       onClick={() => setTareaSeleccionada(t)}
                     >
-                      🔍 Ver
+                      <SearchIcon size={13} /> Ver
                     </button>
                   </td>
                 </tr>

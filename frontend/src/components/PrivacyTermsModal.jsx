@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, FileTextIcon, ShieldCheckIcon } from './Icons';
+import { XIcon, ShieldCheckIcon } from './Icons';
+import { FileText, Scale, Lock, Info } from 'lucide-react';
 
 export default function PrivacyTermsModal({ isOpen, onClose, defaultTab = 'privacidad' }) {
   const [tab, setTab] = useState(defaultTab);
@@ -67,6 +68,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, defaultTab = 'priva
         <div
           style={{
             display: 'flex',
+            flexWrap: 'wrap',
             borderBottom: '1px solid var(--border)',
             background: 'var(--bg-app)',
             padding: '8px 22px 0 22px',
@@ -85,9 +87,13 @@ export default function PrivacyTermsModal({ isOpen, onClose, defaultTab = 'priva
               borderBottom: tab === 'privacidad' ? '2px solid var(--primary)' : '2px solid transparent',
               color: tab === 'privacidad' ? 'var(--primary)' : 'var(--text-muted)',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            📋 Protección de Datos (Ley 1581)
+            <FileText size={14} />
+            <span>Protección de Datos (Ley 1581)</span>
           </button>
           <button
             type="button"
@@ -101,9 +107,13 @@ export default function PrivacyTermsModal({ isOpen, onClose, defaultTab = 'priva
               borderBottom: tab === 'terminos' ? '2px solid var(--primary)' : '2px solid transparent',
               color: tab === 'terminos' ? 'var(--primary)' : 'var(--text-muted)',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            ⚖️ Términos de Uso
+            <Scale size={14} />
+            <span>Términos de Uso</span>
           </button>
           <button
             type="button"
@@ -117,9 +127,13 @@ export default function PrivacyTermsModal({ isOpen, onClose, defaultTab = 'priva
               borderBottom: tab === 'storage' ? '2px solid var(--primary)' : '2px solid transparent',
               color: tab === 'storage' ? 'var(--primary)' : 'var(--text-muted)',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            🔒 Almacenamiento y Sesión
+            <Lock size={14} />
+            <span>Almacenamiento y Sesión</span>
           </button>
         </div>
 
@@ -202,9 +216,15 @@ export default function PrivacyTermsModal({ isOpen, onClose, defaultTab = 'priva
                   border: '1px solid var(--border)',
                   fontSize: '12.5px',
                   color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
                 }}
               >
-                💡 <strong>Recomendación de seguridad:</strong> Si accede a la plataforma desde un equipo compartido o público, cierre su sesión formalmente pulsando el botón <em>Cerrar Sesión</em> para purgar los datos de autenticación del almacenamiento local.
+                <Info size={16} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong>Recomendación de seguridad:</strong> Si accede a la plataforma desde un equipo compartido o público, cierre su sesión formalmente pulsando el botón <em>Cerrar Sesión</em> para purgar los datos de autenticación del almacenamiento local.
+                </div>
               </div>
             </div>
           )}

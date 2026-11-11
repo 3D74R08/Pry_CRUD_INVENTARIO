@@ -19,7 +19,7 @@ async function request(endpoint, options = {}) {
 
   const response = await fetch(url, config);
 
-  if (response.status === 401) {
+  if (response.status === 401 && !endpoint.startsWith('/auth/login') && !endpoint.startsWith('/auth/mfa')) {
     localStorage.removeItem('activos_ti_token');
     localStorage.removeItem('activos_ti_user');
     if (!window.__auth_redirected) {
@@ -39,13 +39,35 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
-  // Autenticación
-  login: (email, password) =>
+  // Autenticación y MFA (TOTP RFC 6238)
+  login: (email, password, mfaCode) =>
     request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+        ...(mfaCode ? { mfaCode } : {}),
+      }),
+    }),
+  logout: () =>
+    request('/auth/logout', {
+      method: 'POST',
     }),
   getProfile: () => request('/auth/me'),
+  setupMfa: () =>
+    request('/auth/mfa/setup', {
+      method: 'POST',
+    }),
+  enableMfa: (code) =>
+    request('/auth/mfa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+  disableMfa: (payload) =>
+    request('/auth/mfa/disable', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   // Equipos y módulos
   getEquipos: (params = {}) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { api } from '../api/client';
 import HistorialModal from './HistorialModal';
 import Pagination from '../components/Pagination';
@@ -459,6 +459,8 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
   const [ordenPlaca, setOrdenPlaca] = useState(''); // '' | 'asc' | 'desc'
   const [paginaActual, setPaginaActual] = useState(1);
   const [itemsPorPagina, setItemsPorPagina] = useState(50);
+  const [menuCategoriasOpen, setMenuCategoriasOpen] = useState(false);
+  const menuCategoriasRef = useRef(null);
 
   // Modales
   const [modalFormOpen, setModalFormOpen] = useState(false);
@@ -654,20 +656,30 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     cargarDatos();
   }, [moduloActivo, estadoFiltro, tipoFiltro, sedeFiltro, ordenPlaca]);
 
-  // Accesibilidad: Cerrar modales abiertos mediante la tecla Escape
+  // Accesibilidad: Cerrar modales y menú superior mediante la tecla Escape o clic externo
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (modalHojaVidaOpen) setModalHojaVidaOpen(false);
+        if (menuCategoriasOpen) setMenuCategoriasOpen(false);
+        else if (modalHojaVidaOpen) setModalHojaVidaOpen(false);
         else if (modalFormOpen) setModalFormOpen(false);
         else if (modalPrestarCustodiaOpen) setModalPrestarCustodiaOpen(false);
         else if (modalDevolucionPrestamoOpen) setModalDevolucionPrestamoOpen(false);
         else if (modalFirmaActaOpen) setModalFirmaActaOpen(false);
       }
     };
+    const handleClickOutside = (e) => {
+      if (menuCategoriasRef.current && !menuCategoriasRef.current.contains(e.target)) {
+        setMenuCategoriasOpen(false);
+      }
+    };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modalHojaVidaOpen, modalFormOpen, modalPrestarCustodiaOpen, modalDevolucionPrestamoOpen, modalFirmaActaOpen]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuCategoriasOpen, modalHojaVidaOpen, modalFormOpen, modalPrestarCustodiaOpen, modalDevolucionPrestamoOpen, modalFirmaActaOpen]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -1213,25 +1225,225 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
     return titulos[moduloActivo] || 'Registrar Activo Tecnológico';
   };
 
+  const activeTabObj = TABS_CONFIG.find((t) => t.key === moduloActivo) || TABS_CONFIG[0];
+  const activeTabCount =
+    activeTabObj.countKey && conteos[activeTabObj.countKey] !== undefined
+      ? conteos[activeTabObj.countKey]
+      : equipos.length;
+
   return (
     <div className="equipos-module-container">
-      {/* 1. Barra Horizontal de Módulos (Réplica de Sistema Anterior) */}
-      <div className="legacy-tabs-bar">
-        {TABS_CONFIG.map((tab) => {
-          const isActive = moduloActivo === tab.key;
-          const count = tab.countKey && conteos[tab.countKey] !== undefined ? conteos[tab.countKey] : null;
-          return (
-            <button
-              key={tab.key}
-              className={`legacy-tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => handleTabClick(tab.key)}
+      {/* 1. Menú Superior de Selección de Pestaña / Categoría (Sin barra de scroll horizontal) */}
+      <div
+        ref={menuCategoriasRef}
+        className="dash-card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '14px',
+          padding: '14px 18px',
+          marginBottom: '16px',
+          position: 'relative',
+          zIndex: 25,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: 'rgba(37, 99, 235, 0.14)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              color: '#3b82f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {activeTabObj.icon}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
+              Vista activa del módulo de equipos
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
+                {activeTabObj.label}
+              </span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  padding: '2px 9px',
+                  borderRadius: '999px',
+                  background: 'var(--primary)',
+                  color: '#ffffff',
+                }}
+              >
+                {activeTabCount} registros
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setMenuCategoriasOpen((prev) => !prev)}
+            aria-expanded={menuCategoriasOpen}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '9px 14px',
+              borderRadius: '10px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              minWidth: '260px',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-sm)',
+              transition: 'all 150ms ease',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center' }}>{activeTabObj.icon}</span>
+              <span>{activeTabObj.label}</span>
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <span
+                style={{
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  padding: '1px 7px',
+                  borderRadius: '999px',
+                  background: 'rgba(59, 130, 246, 0.16)',
+                  color: '#60a5fa',
+                }}
+              >
+                {activeTabCount}
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transform: menuCategoriasOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 150ms ease',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+
+          {menuCategoriasOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '320px',
+                maxWidth: 'calc(100vw - 32px)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                boxShadow: 'var(--shadow-lg)',
+                padding: '8px',
+                zIndex: 60,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                maxHeight: '420px',
+                overflowY: 'auto',
+              }}
             >
-              <span className="tab-icon">{tab.icon}</span>
-              <span className="tab-text">{tab.label}</span>
-              {count !== null && <span className="tab-badge">{count}</span>}
-            </button>
-          );
-        })}
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: 'var(--text-secondary)',
+                  padding: '6px 10px 4px 10px',
+                }}
+              >
+                Seleccionar pestaña del inventario
+              </div>
+              {TABS_CONFIG.map((tab) => {
+                const isActive = moduloActivo === tab.key;
+                const count = tab.countKey && conteos[tab.countKey] !== undefined ? conteos[tab.countKey] : null;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => {
+                      setMenuCategoriasOpen(false);
+                      handleTabClick(tab.key);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      width: '100%',
+                      padding: '9px 11px',
+                      borderRadius: '8px',
+                      border: isActive ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid transparent',
+                      background: isActive ? 'rgba(37, 99, 235, 0.16)' : 'transparent',
+                      color: isActive ? '#60a5fa' : 'var(--text-main)',
+                      fontSize: '13px',
+                      fontWeight: isActive ? 600 : 500,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'all 120ms ease',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, color: isActive ? '#3b82f6' : 'var(--text-secondary)' }}>
+                        {tab.icon}
+                      </span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {tab.label}
+                      </span>
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      {count !== null && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '1px 8px',
+                            borderRadius: '999px',
+                            background: isActive ? 'var(--primary)' : 'var(--bg-secondary)',
+                            color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                            border: isActive ? 'none' : '1px solid var(--border-color)',
+                          }}
+                        >
+                          {count}
+                        </span>
+                      )}
+                      {isActive && <CheckIcon size={14} color="#3b82f6" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Banner Informativo de Módulo: Equipos en Préstamo (Indefinido) vs Préstamos (Temporales) */}
@@ -1611,7 +1823,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
 
                       <button
                         className="btn-icon"
-                        title="📄 Hoja de Vida (Ver, Editar y Descargar)"
+                        title="Hoja de Vida (Ver, Editar y Descargar)"
                         onClick={() => handleAbrirHojaVida(eq)}
                         style={{ color: '#059669' }}
                       >
@@ -1620,7 +1832,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
 
                       <button
                         className="btn-icon"
-                        title="📝 Descargar Acta de Entrega con Firmas (.docx)"
+                        title="Descargar Acta de Entrega con Firmas (.docx)"
                         onClick={() => handleDescargarActaEntrega(eq)}
                         style={{ color: '#0284c7' }}
                       >
@@ -2074,7 +2286,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               <div className="modal-body">
                 <div className="form-2col" style={{ gridTemplateColumns: '1fr' }}>
                   <div style={{ background: 'var(--warn-light)', border: '1px solid var(--warn)', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: 'var(--text-main)', lineHeight: 1.4 }}>
-                    ⏳ <b>Préstamo Temporal (Por Días):</b> Este equipo se registrará como préstamo temporal por unos días y requerirá retorno a Custodia/Almacén TI. (Las asignaciones indefinidas para puestos de trabajo se gestionan como <i>Equipos en Préstamo</i>).
+                    <b>Préstamo Temporal (Por Días):</b> Este equipo se registrará como préstamo temporal por unos días y requerirá retorno a Custodia/Almacén TI. (Las asignaciones indefinidas para puestos de trabajo se gestionan como <i>Equipos en Préstamo</i>).
                   </div>
                   <div className="form-field-group">
                     <label>Nombre del Responsable * (Quién se lleva el equipo)</label>
@@ -2141,7 +2353,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
             <div className="modal-header">
               <h3 className="modal-title">
-                📦 Asignar Préstamo Temporal desde Custodia / Almacén
+                Asignar Préstamo Temporal desde Custodia / Almacén
               </h3>
               <button className="btn-icon" onClick={() => setModalPrestarCustodiaOpen(false)}>
                 ✕
@@ -2151,7 +2363,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               <div className="modal-body">
                 <div className="form-2col" style={{ gridTemplateColumns: '1fr' }}>
                   <div style={{ background: 'rgba(2, 132, 199, 0.1)', border: '1px solid #0284c7', borderRadius: '10px', padding: '12px 14px', fontSize: '12.5px', color: 'var(--text-main)', lineHeight: 1.45 }}>
-                    💡 <b>Selección de Activo:</b> Escoge un equipo disponible en Custodia / Almacén TI para asignarlo en calidad de préstamo temporal por unos días.
+                    <b>Selección de Activo:</b> Escoge un equipo disponible en Custodia / Almacén TI para asignarlo en calidad de préstamo temporal por unos días.
                   </div>
 
                   <div className="form-field-group">
@@ -2251,7 +2463,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
             <div className="modal-header">
               <h3 className="modal-title">
-                🔄 Registrar Devolución de Equipo a Custodia TI
+                Registrar Devolución de Equipo a Custodia TI
               </h3>
               <button className="btn-icon" onClick={() => setModalDevolucionPrestamoOpen(false)}>
                 ✕
@@ -2261,7 +2473,7 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               <div className="modal-body">
                 <div className="form-2col" style={{ gridTemplateColumns: '1fr' }}>
                   <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid #059669', borderRadius: '10px', padding: '12px 14px', fontSize: '12.5px', color: 'var(--text-main)', lineHeight: 1.45 }}>
-                    📋 <b>Recepción de Préstamo:</b> Selecciona el equipo que se encontraba prestado para reintegrarlo al inventario disponible de Custodia / Almacén TI.
+                    <b>Recepción de Préstamo:</b> Selecciona el equipo que se encontraba prestado para reintegrarlo al inventario disponible de Custodia / Almacén TI.
                   </div>
 
                   <div className="form-field-group">
@@ -2343,8 +2555,8 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
         <div className="modal-backdrop" onClick={() => setModalBajaOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h3 className="modal-title" style={{ color: '#b91c1c' }}>
-                ⚠️ Confirmar Baja Definitiva: {equipoBaja?.placa}
+              <h3 className="modal-title" style={{ color: '#ef4444' }}>
+                Confirmar Baja Definitiva: {equipoBaja?.placa}
               </h3>
               <button className="btn-icon" onClick={() => setModalBajaOpen(false)}>
                 ✕
@@ -2485,8 +2697,8 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               </div>
             )}
             {errorHojaVida && (
-              <div style={{ margin: '12px 18px 0 18px', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.12)', color: '#991b1b', borderRadius: 'var(--radius)', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>⚠️</span> {errorHojaVida}
+              <div style={{ margin: '12px 18px 0 18px', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', borderRadius: 'var(--radius)', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangleIcon size={15} /> {errorHojaVida}
               </div>
             )}
 
@@ -2857,8 +3069,8 @@ VPN FortiClient"
                       </div>
                     </div>
                   ) : (
-                    <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-                      <table className="table" style={{ margin: 0 }}>
+                    <div className="table-container" style={{ width: '100%', overflowX: 'auto' }}>
+                      <table style={{ width: '100%', margin: 0 }}>
                         <thead>
                           <tr>
                             <th style={{ width: '220px' }}>Acción Realizada</th>

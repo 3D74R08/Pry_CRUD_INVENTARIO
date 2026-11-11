@@ -13,6 +13,7 @@ import CargaMasiva from './pages/CargaMasiva';
 import TareasWorker from './pages/TareasWorker';
 import Reportes from './pages/Reportes';
 import UsuariosList from './pages/UsuariosList';
+import Configuracion from './pages/Configuracion';
 import PrivacyTermsModal from './components/PrivacyTermsModal';
 import StorageConsentBanner from './components/StorageConsentBanner';
 
@@ -40,7 +41,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen text-slate-100 flex ${isDark ? 'bg-[#101827]' : 'bg-[#F8FAFC] text-slate-900'}`}>
+    <div className={`min-h-screen text-slate-100 flex overflow-x-hidden ${isDark ? 'bg-[#101827]' : 'bg-[#F8FAFC] text-slate-900'}`}>
       {/* Backdrop overlay para pantallas móviles */}
       {sidebarOpen && (
         <div
@@ -61,14 +62,14 @@ export default function App() {
       />
 
       {/* Contenedor Principal */}
-      <div className="flex-1 flex flex-col min-w-0 md:pl-64 min-h-screen">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full md:pl-64 min-h-screen overflow-x-hidden">
         <Topbar
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onNavigate={setCurrentView}
           onOpenPrivacy={() => setIsPrivacyModalOpen(true)}
         />
 
-        <main className="flex-1 p-5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden">
           {currentView === 'dashboard' && <Dashboard onNavigate={setCurrentView} />}
 
           {currentView === 'equipos' &&
@@ -102,6 +103,10 @@ export default function App() {
 
           {currentView === 'usuarios' &&
             (canManageUsers ? <UsuariosList /> : <MisEquipos />)}
+
+          {currentView === 'configuracion' && (
+            <Configuracion onOpenPrivacy={() => setIsPrivacyModalOpen(true)} />
+          )}
         </main>
       </div>
 

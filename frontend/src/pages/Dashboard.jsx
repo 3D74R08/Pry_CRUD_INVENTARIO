@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -8,6 +8,7 @@ import {
   Clock,
   Bell,
   ChevronRight,
+  ChevronDown,
   MoreVertical,
   Calendar,
   Box,
@@ -17,8 +18,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Eye,
+  CheckCheck,
 } from 'lucide-react';
 import { SkeletonBox } from '../components/Skeleton';
+
+const DATE_FILTER_OPTIONS = [
+  { id: 'all', label: 'Todo el historial' },
+  { id: 'today', label: 'Hoy' },
+  { id: '7d', label: 'Últimos 7 días' },
+  { id: '30d', label: 'Últimos 30 días' },
+];
 
 export default function Dashboard({ onNavigate }) {
   const { user } = useAuth();
@@ -34,6 +43,15 @@ export default function Dashboard({ onNavigate }) {
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [dateFilter, setDateFilter] = useState('all');
+  const [dateMenuOpen, setDateMenuOpen] = useState(false);
+  const [notificationsRead, setNotificationsRead] = useState(() => {
+    return localStorage.getItem('vaultti_notifications_read') === 'true';
+  });
+  const [notifEnabled, setNotifEnabled] = useState(() => {
+    return localStorage.getItem('vaultti_notif_enabled') !== 'false';
+  });
+  const dateMenuRef = useRef(null);
 
   useEffect(() => {
     async function loadData() {
@@ -61,25 +79,61 @@ export default function Dashboard({ onNavigate }) {
     loadData();
   }, []);
 
+  // Sincronizar estado de lectura de notificaciones con Topbar y Configuración
+  useEffect(() => {
+    const syncNotifications = () => {
+      setNotificationsRead(localStorage.getItem('vaultti_notifications_read') === 'true');
+      setNotifEnabled(localStorage.getItem('vaultti_notif_enabled') !== 'false');
+    };
+    window.addEventListener('vaultti-notifications-updated', syncNotifications);
+    window.addEventListener('storage', syncNotifications);
+    return () => {
+      window.removeEventListener('vaultti-notifications-updated', syncNotifications);
+      window.removeEventListener('storage', syncNotifications);
+    };
+  }, []);
+
+  // Cerrar selector de fecha al hacer clic fuera
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (dateMenuRef.current && !dateMenuRef.current.contains(e.target)) {
+        setDateMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const markNotificationsAsRead = () => {
+    localStorage.setItem('vaultti_notifications_read', 'true');
+    setNotificationsRead(true);
+    window.dispatchEvent(new Event('vaultti-notifications-updated'));
+  };
+
   const {
     resumen = { totalEquipos: 0, usuariosActivos: 0, tareasEnProceso: 0, tareasCompletadas: 0 },
     disponibilidad = { asignados: 0, enCustodia: 0, prestamoTemporal: 0, deBaja: 0 },
     porEstado = [],
   } = metricas;
 
-  // Cálculo de mantenimiento / en revisión
+  // Cálculo real de equipos en mantenimiento / revisión / falla
   const enMantenimientoCount = useMemo(() => {
     let count = 0;
     (porEstado || []).forEach((e) => {
       const est = (e.estado || '').toUpperCase();
-      if (est.includes('REVISION') || est.includes('MANTENIMIENTO') || est.includes('FALLA') || est.includes('DAÑ')) {
+      if (
+        est.includes('REVISION') ||
+        est.includes('MANTENIMIENTO') ||
+        est.includes('FALLA') ||
+        est.includes('DAÑ')
+      ) {
         count += Number(e.cantidad || 0);
       }
     });
     return count;
   }, [porEstado]);
 
-  // Formateador de fecha actual en español: "Mié, 23 Abr 2025"
+  // Formateador de fecha actual en español
   const currentDateFormatted = useMemo(() => {
     const now = new Date();
     const diaSemana = now.toLocaleDateString('es-CO', { weekday: 'short' });
@@ -93,7 +147,7 @@ export default function Dashboard({ onNavigate }) {
 
   // Formateador de fecha de evento
   const formatEventDate = (iso) => {
-    if (!iso) return '23/04/2025 10:45';
+    if (!iso) return '—';
     try {
       const d = new Date(iso);
       const dia = String(d.getDate()).padStart(2, '0');
@@ -113,7 +167,7 @@ export default function Dashboard({ onNavigate }) {
     if (t.includes('ASIGNAC') || t.includes('PRESTAMO')) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-500 border border-blue-500/30">
-          Asignación
+          {t.includes('PRESTAMO') ? 'Préstamo' : 'Asignación'}
         </span>
       );
     }
@@ -131,6 +185,20 @@ export default function Dashboard({ onNavigate }) {
         </span>
       );
     }
+    if (t.includes('MANTEN') || t.includes('FALLO') || t.includes('ESTADO')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+          Mantenimiento
+        </span>
+      );
+    }
+    if (t.includes('ELIMIN') || t.includes('BAJA')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+          {t.includes('ELIMIN') ? 'Eliminación' : 'Baja'}
+        </span>
+      );
+    }
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-400 border border-slate-500/30">
         {tipo || 'Registro'}
@@ -139,30 +207,37 @@ export default function Dashboard({ onNavigate }) {
   };
 
   // Helper para badge de estado
-  const renderEstadoBadge = (estado) => {
-    const e = (estado || '').toUpperCase();
-    if (e.includes('ACTIVO') || e.includes('OPERATIV') || e.includes('FUNCIONAL')) {
+  const renderEstadoBadge = (ev) => {
+    const t = (ev?.tipo_evento || '').toUpperCase();
+    if (t.includes('ELIMIN')) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
-          Activo
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+          Eliminado
         </span>
       );
     }
-    if (e.includes('COMPLETA') || e.includes('EXITO')) {
+    if (t.includes('BAJA')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-300 border border-slate-500/30">
+          De baja
+        </span>
+      );
+    }
+    if (t.includes('DEVOLUC')) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/30">
           Completado
         </span>
       );
     }
-    if (e.includes('REGISTR') || e.includes('CUSTODIA')) {
+    if (t.includes('CREAC')) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-500 border border-blue-500/30">
           Registrado
         </span>
       );
     }
-    if (e.includes('REVIS') || e.includes('MANTEN')) {
+    if (t.includes('FALLO') || t.includes('REVIS') || t.includes('MANTEN')) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
           En revisión
@@ -170,60 +245,46 @@ export default function Dashboard({ onNavigate }) {
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-400 border border-slate-500/30">
-        {estado || 'Disponible'}
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+        Activo
       </span>
     );
   };
 
-  // Eventos de muestra si la base de datos está vacía en este momento
+  // Filtrado real de eventos por el selector de fecha
   const displayEventos = useMemo(() => {
-    if (eventos && eventos.length > 0) {
-      return eventos.slice(0, 5);
-    }
-    return [
-      {
-        id: 1,
-        creado_en: new Date().toISOString(),
-        equipo_info: 'HP ProBook 450',
-        usuario_nombre: 'María González',
-        tipo_evento: 'ASIGNACION',
-        estado_resultante: 'Activo',
-      },
-      {
-        id: 2,
-        creado_en: new Date(Date.now() - 3600000).toISOString(),
-        equipo_info: 'Dell Latitude 5420',
-        usuario_nombre: 'Carlos López',
-        tipo_evento: 'DEVOLUCION',
-        estado_resultante: 'Completado',
-      },
-      {
-        id: 3,
-        creado_en: new Date(Date.now() - 7200000).toISOString(),
-        equipo_info: 'Lenovo ThinkCentre',
-        usuario_nombre: 'Ana Torres',
-        tipo_evento: 'CREACION',
-        estado_resultante: 'Registrado',
-      },
-      {
-        id: 4,
-        creado_en: new Date(Date.now() - 14400000).toISOString(),
-        equipo_info: 'Monitor LG 24"',
-        usuario_nombre: 'Luis Martínez',
-        tipo_evento: 'ASIGNACION',
-        estado_resultante: 'Activo',
-      },
-      {
-        id: 5,
-        creado_en: new Date(Date.now() - 28800000).toISOString(),
-        equipo_info: 'Teclado Logitech',
-        usuario_nombre: 'Sofía Ramírez',
-        tipo_evento: 'DEVOLUCION',
-        estado_resultante: 'Completado',
-      },
-    ];
-  }, [eventos]);
+    const lista = Array.isArray(eventos) ? eventos : [];
+    const now = Date.now();
+    const filtrados = lista.filter((ev) => {
+      if (dateFilter === 'all') return true;
+      const rawDate = ev.fecha_evento || ev.creado_en;
+      if (!rawDate) return true;
+      const ts = new Date(rawDate).getTime();
+      if (Number.isNaN(ts)) return true;
+      const diffMs = now - ts;
+      if (dateFilter === 'today') {
+        const d = new Date(rawDate);
+        const today = new Date();
+        return (
+          d.getDate() === today.getDate() &&
+          d.getMonth() === today.getMonth() &&
+          d.getFullYear() === today.getFullYear()
+        );
+      }
+      if (dateFilter === '7d') return diffMs <= 7 * 24 * 60 * 60 * 1000;
+      if (dateFilter === '30d') return diffMs <= 30 * 24 * 60 * 60 * 1000;
+      return true;
+    });
+    return filtrados.slice(0, 6);
+  }, [eventos, dateFilter]);
+
+  const selectedFilterObj =
+    DATE_FILTER_OPTIONS.find((o) => o.id === dateFilter) || DATE_FILTER_OPTIONS[0];
+
+  const prestamosCount = Number(disponibilidad.prestamoTemporal ?? 0);
+  const activeAlertCount =
+    (prestamosCount > 0 ? 1 : 0) + (enMantenimientoCount > 0 ? 1 : 0) + 1;
+  const showRedBadge = notifEnabled && !notificationsRead && activeAlertCount > 0;
 
   if (loading) {
     return (
@@ -251,37 +312,93 @@ export default function Dashboard({ onNavigate }) {
 
   return (
     <div className="space-y-6">
-      {/* 1. Header con Saludo y Fecha */}
+      {/* 1. Header con Saludo y Selector de Fecha Funcional */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1
             className="text-2xl sm:text-3xl font-bold tracking-tight"
             style={{ color: 'var(--text-main)' }}
           >
-            Bienvenido, {user?.nombre_completo || primerNombre} 👋
+            Bienvenido, {user?.nombre_completo || primerNombre}
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Aquí tienes un resumen general de tu inventario.
+            Aquí tienes un resumen general y en tiempo real de tu inventario.
           </p>
         </div>
 
-        <div
-          className="flex items-center gap-2 self-start sm:self-auto px-3.5 py-2 rounded-xl text-xs font-medium shadow-sm"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-main)',
-            border: '1px solid var(--border-color)',
-          }}
-        >
-          <Calendar size={14} style={{ color: 'var(--text-secondary)' }} />
-          <span>{currentDateFormatted}</span>
-          <span className="ml-0.5" style={{ color: 'var(--text-secondary)' }}>
-            ▼
-          </span>
+        {/* Selector de Fecha / Periodo Interactivo */}
+        <div className="relative self-start sm:self-auto" ref={dateMenuRef}>
+          <button
+            type="button"
+            onClick={() => setDateMenuOpen(!dateMenuOpen)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium shadow-sm transition-colors cursor-pointer hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-main)',
+              border: '1px solid var(--border-color)',
+            }}
+            aria-haspopup="listbox"
+            aria-expanded={dateMenuOpen}
+          >
+            <Calendar size={14} className="text-blue-500" />
+            <span>{currentDateFormatted}</span>
+            <span
+              className="px-1.5 py-0.5 rounded text-[11px] font-semibold"
+              style={{
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              {selectedFilterObj.label}
+            </span>
+            <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />
+          </button>
+
+          {dateMenuOpen && (
+            <div
+              className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl py-1.5 z-30"
+              style={{
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border-color)',
+              }}
+              role="listbox"
+            >
+              <div
+                className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider"
+                style={{
+                  color: 'var(--text-secondary)',
+                  borderBottom: '1px solid var(--border-color)',
+                }}
+              >
+                Filtrar movimientos por fecha
+              </div>
+              {DATE_FILTER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setDateFilter(opt.id);
+                    setDateMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2 text-xs font-medium flex items-center justify-between transition-colors ${
+                    dateFilter === opt.id ? 'text-blue-400 font-semibold' : ''
+                  }`}
+                  style={{
+                    color: dateFilter === opt.id ? undefined : 'var(--text-main)',
+                  }}
+                >
+                  <span>{opt.label}</span>
+                  {dateFilter === opt.id && (
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 2. Tres Tarjetas KPI Principales con Sparklines */}
+      {/* 2. Tres Tarjetas KPI Principales con Datos Reales y Sparklines */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* KPI 1: Equipos Registrados */}
         <div
@@ -302,7 +419,7 @@ export default function Dashboard({ onNavigate }) {
             </div>
             <div className="flex items-center gap-1 text-xs font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
               <ArrowUpRight size={13} />
-              <span>2%</span>
+              <span>Total</span>
             </div>
           </div>
 
@@ -311,7 +428,7 @@ export default function Dashboard({ onNavigate }) {
               className="text-3xl font-bold tracking-tight"
               style={{ color: 'var(--text-main)' }}
             >
-              {Number(resumen.totalEquipos || 1284).toLocaleString('es-CO')}
+              {Number(resumen.totalEquipos ?? 0).toLocaleString('es-CO')}
             </div>
             <div className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
               Equipos registrados
@@ -361,7 +478,7 @@ export default function Dashboard({ onNavigate }) {
             </div>
             <div className="flex items-center gap-1 text-xs font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
               <ArrowUpRight size={13} />
-              <span>1%</span>
+              <span>Activos</span>
             </div>
           </div>
 
@@ -370,7 +487,7 @@ export default function Dashboard({ onNavigate }) {
               className="text-3xl font-bold tracking-tight"
               style={{ color: 'var(--text-main)' }}
             >
-              {Number(disponibilidad.asignados || 936).toLocaleString('es-CO')}
+              {Number(disponibilidad.asignados ?? 0).toLocaleString('es-CO')}
             </div>
             <div className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
               Equipos asignados
@@ -401,7 +518,7 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* KPI 3: En Mantenimiento */}
+        {/* KPI 3: En Mantenimiento (Conteo real de BD, sin número 32 falso) */}
         <div
           role="button"
           tabIndex={0}
@@ -418,9 +535,9 @@ export default function Dashboard({ onNavigate }) {
             <div className="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/30">
               <Wrench size={24} />
             </div>
-            <div className="flex items-center gap-1 text-xs font-semibold text-rose-500 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
+            <div className="flex items-center gap-1 text-xs font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
               <ArrowDownRight size={13} />
-              <span>1%</span>
+              <span>Revisión</span>
             </div>
           </div>
 
@@ -429,7 +546,7 @@ export default function Dashboard({ onNavigate }) {
               className="text-3xl font-bold tracking-tight"
               style={{ color: 'var(--text-main)' }}
             >
-              {Number(enMantenimientoCount || 32).toLocaleString('es-CO')}
+              {Number(enMantenimientoCount ?? 0).toLocaleString('es-CO')}
             </div>
             <div className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
               En mantenimiento
@@ -464,7 +581,7 @@ export default function Dashboard({ onNavigate }) {
       {/* 3. Fila Central: Movimientos Recientes (Izquierda) + Pendientes de Atención (Derecha) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Panel Izquierdo: Movimientos Recientes */}
-        <div className="lg:col-span-2 dash-card p-5 flex flex-col justify-between">
+        <div className="lg:col-span-2 dash-card p-5 flex flex-col justify-between min-w-0">
           <div>
             <div
               className="flex items-center justify-between pb-4"
@@ -507,66 +624,93 @@ export default function Dashboard({ onNavigate }) {
                   </tr>
                 </thead>
                 <tbody className="font-medium">
-                  {displayEventos.map((ev) => (
-                    <tr
-                      key={ev.id}
-                      className="transition-colors hover:opacity-90"
-                      style={{ borderBottom: '1px solid var(--border-color)' }}
-                    >
+                  {displayEventos.length === 0 ? (
+                    <tr>
                       <td
-                        className="py-3 px-3 whitespace-nowrap"
+                        colSpan={6}
+                        className="py-8 px-3 text-center text-xs"
                         style={{ color: 'var(--text-secondary)' }}
                       >
-                        {formatEventDate(ev.creado_en)}
-                      </td>
-                      <td className="py-3 px-3 font-semibold" style={{ color: 'var(--text-main)' }}>
-                        {ev.equipo_info || ev.marca_modelo || 'Activo TI'}
-                      </td>
-                      <td className="py-3 px-3" style={{ color: 'var(--text-secondary)' }}>
-                        {ev.usuario_nombre || ev.usuario_email || 'Responsable'}
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        {renderMovimientoBadge(ev.tipo_evento)}
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        {renderEstadoBadge(ev.estado_resultante || 'Activo')}
-                      </td>
-                      <td className="py-3 px-3 text-right relative">
-                        <button
-                          type="button"
-                          onClick={() => setActiveMenuId(activeMenuId === ev.id ? null : ev.id)}
-                          className="p-1 rounded-md transition-colors hover:opacity-80"
-                          style={{ color: 'var(--text-secondary)' }}
-                          aria-label="Acciones del movimiento"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-
-                        {activeMenuId === ev.id && (
-                          <div
-                            className="absolute right-3 top-8 w-36 rounded-lg shadow-xl py-1 z-20 text-left"
-                            style={{
-                              backgroundColor: 'var(--surface)',
-                              border: '1px solid var(--border-color)',
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveMenuId(null);
-                                if (onNavigate) onNavigate('control-cambios');
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:opacity-80"
-                              style={{ color: 'var(--text-main)' }}
-                            >
-                              <Eye size={12} />
-                              <span>Ver detalles</span>
-                            </button>
-                          </div>
-                        )}
+                        No se registran movimientos en el periodo seleccionado ({selectedFilterObj.label}).
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    displayEventos.map((ev) => {
+                      const equipoNombre =
+                        [ev.equipo_marca, ev.equipo_modelo].filter(Boolean).join(' ') ||
+                        ev.equipo_placa ||
+                        ev.equipo_info ||
+                        'Activo TI';
+                      return (
+                        <tr
+                          key={ev.id}
+                          className="transition-colors hover:opacity-90"
+                          style={{ borderBottom: '1px solid var(--border-color)' }}
+                        >
+                          <td
+                            className="py-3 px-3 whitespace-nowrap"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {formatEventDate(ev.fecha_evento || ev.creado_en)}
+                          </td>
+                          <td className="py-3 px-3 font-semibold" style={{ color: 'var(--text-main)' }}>
+                            {equipoNombre}
+                            {ev.equipo_placa && (
+                              <span
+                                className="ml-1.5 text-[11px] font-normal"
+                                style={{ color: 'var(--text-secondary)' }}
+                              >
+                                ({ev.equipo_placa})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3" style={{ color: 'var(--text-secondary)' }}>
+                            {ev.usuario_nombre || ev.usuario_email || 'Sistema'}
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            {renderMovimientoBadge(ev.tipo_evento)}
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            {renderEstadoBadge(ev)}
+                          </td>
+                          <td className="py-3 px-3 text-right relative">
+                            <button
+                              type="button"
+                              onClick={() => setActiveMenuId(activeMenuId === ev.id ? null : ev.id)}
+                              className="p-1 rounded-md transition-colors hover:opacity-80"
+                              style={{ color: 'var(--text-secondary)' }}
+                              aria-label="Acciones del movimiento"
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+
+                            {activeMenuId === ev.id && (
+                              <div
+                                className="absolute right-3 top-8 w-36 rounded-lg shadow-xl py-1 z-20 text-left"
+                                style={{
+                                  backgroundColor: 'var(--surface)',
+                                  border: '1px solid var(--border-color)',
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    if (onNavigate) onNavigate('control-cambios');
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:opacity-80"
+                                  style={{ color: 'var(--text-main)' }}
+                                >
+                                  <Eye size={12} />
+                                  <span>Ver auditoría</span>
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -574,7 +718,7 @@ export default function Dashboard({ onNavigate }) {
         </div>
 
         {/* Panel Derecho: Pendientes de Atención */}
-        <div className="dash-card p-5 flex flex-col justify-between">
+        <div className="dash-card p-5 flex flex-col justify-between min-w-0">
           <div>
             <div
               className="flex items-center justify-between pb-4"
@@ -586,22 +730,39 @@ export default function Dashboard({ onNavigate }) {
                   Pendientes de atención
                 </h2>
               </div>
-              <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center">
-                3
-              </span>
+
+              {showRedBadge ? (
+                <button
+                  type="button"
+                  onClick={markNotificationsAsRead}
+                  title="Haz clic para marcar como vistas y ocultar el indicador rojo"
+                  className="w-5 h-5 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center cursor-pointer hover:bg-rose-600 transition-colors"
+                >
+                  {activeAlertCount}
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                  <CheckCheck size={14} />
+                  <span>Al día</span>
+                </span>
+              )}
             </div>
 
             {/* Lista de Alertas / Pendientes */}
             <div className="space-y-3 mt-4">
-              {/* Alerta 1: Devoluciones pendientes */}
+              {/* Alerta 1: Préstamos / Devoluciones pendientes */}
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => onNavigate && onNavigate('asignaciones')}
+                onClick={() => {
+                  markNotificationsAsRead();
+                  if (onNavigate) onNavigate('equipos');
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    if (onNavigate) onNavigate('asignaciones');
+                    markNotificationsAsRead();
+                    if (onNavigate) onNavigate('equipos');
                   }
                 }}
                 className="flex items-center justify-between p-3 rounded-xl cursor-pointer group transition-all"
@@ -619,27 +780,34 @@ export default function Dashboard({ onNavigate }) {
                       className="text-xs font-semibold leading-tight"
                       style={{ color: 'var(--text-main)' }}
                     >
-                      2 devoluciones pendientes
+                      {prestamosCount}{' '}
+                      {prestamosCount === 1
+                        ? 'préstamo temporal activo'
+                        : 'préstamos temporales activos'}
                     </div>
                     <div
                       className="text-[11px] leading-tight mt-0.5"
                       style={{ color: 'var(--text-secondary)' }}
                     >
-                      Equipos asignados sin devolver
+                      Equipos pendientes de retorno a custodia
                     </div>
                   </div>
                 </div>
                 <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
               </div>
 
-              {/* Alerta 2: Mantenimiento vencido */}
+              {/* Alerta 2: Mantenimiento / Revisión */}
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => onNavigate && onNavigate('equipos')}
+                onClick={() => {
+                  markNotificationsAsRead();
+                  if (onNavigate) onNavigate('equipos');
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
+                    markNotificationsAsRead();
                     if (onNavigate) onNavigate('equipos');
                   }
                 }}
@@ -658,27 +826,34 @@ export default function Dashboard({ onNavigate }) {
                       className="text-xs font-semibold leading-tight"
                       style={{ color: 'var(--text-main)' }}
                     >
-                      1 mantenimiento vencido
+                      {enMantenimientoCount}{' '}
+                      {enMantenimientoCount === 1
+                        ? 'equipo en mantenimiento'
+                        : 'equipos en mantenimiento'}
                     </div>
                     <div
                       className="text-[11px] leading-tight mt-0.5"
                       style={{ color: 'var(--text-secondary)' }}
                     >
-                      Equipo con mantenimiento atrasado
+                      Activos en revisión técnica o soporte
                     </div>
                   </div>
                 </div>
                 <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
               </div>
 
-              {/* Alerta 3: Acta por firmar */}
+              {/* Alerta 3: Actas y Asignaciones */}
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => onNavigate && onNavigate('asignaciones')}
+                onClick={() => {
+                  markNotificationsAsRead();
+                  if (onNavigate) onNavigate('asignaciones');
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
+                    markNotificationsAsRead();
                     if (onNavigate) onNavigate('asignaciones');
                   }
                 }}
@@ -697,13 +872,13 @@ export default function Dashboard({ onNavigate }) {
                       className="text-xs font-semibold leading-tight"
                       style={{ color: 'var(--text-main)' }}
                     >
-                      1 acta por firmar
+                      Gestión de actas de entrega
                     </div>
                     <div
                       className="text-[11px] leading-tight mt-0.5"
                       style={{ color: 'var(--text-secondary)' }}
                     >
-                      Asignación reciente pendiente
+                      Firmar y descargar actas de colaboradores
                     </div>
                   </div>
                 </div>
@@ -715,7 +890,10 @@ export default function Dashboard({ onNavigate }) {
           {/* Botón Ver Pendientes */}
           <button
             type="button"
-            onClick={() => onNavigate && onNavigate('asignaciones')}
+            onClick={() => {
+              markNotificationsAsRead();
+              if (onNavigate) onNavigate('asignaciones');
+            }}
             className="w-full mt-4 py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-blue-600/30"
           >
             <span>Ver pendientes</span>

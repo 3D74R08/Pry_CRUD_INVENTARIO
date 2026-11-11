@@ -1,6 +1,11 @@
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 
+function isValidPassword(pwd) {
+  if (!pwd || typeof pwd !== 'string' || pwd.trim().length < 8) return false;
+  return /[A-Za-z]/.test(pwd) && /[0-9]/.test(pwd);
+}
+
 // Listar todos los usuarios (Solo ADMIN)
 async function getUsuarios(req, res) {
   try {
@@ -23,6 +28,10 @@ async function createUsuario(req, res) {
 
     if (!email || !password || !nombre_completo || !cedula) {
       return res.status(400).json({ error: 'Email, contraseña, nombre completo y cédula son obligatorios' });
+    }
+
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números' });
     }
 
     const check = await db.query(
@@ -111,6 +120,9 @@ async function updateUsuario(req, res) {
     ];
 
     if (password && password.trim() !== '') {
+      if (!isValidPassword(password)) {
+        return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números' });
+      }
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(password.trim(), salt);
       params.push(passwordHash);

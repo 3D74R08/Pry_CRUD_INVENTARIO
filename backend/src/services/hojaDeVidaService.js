@@ -10,11 +10,17 @@ const borderThin = {
   right: { style: 'thin', color: { argb: 'FF000000' } }
 };
 
-// Función para sanitizar nombres de directorios y archivos en el SO
+// Función para sanitizar nombres de directorios y archivos en el SO (previene Path Traversal CWE-22)
 function sanitizeName(name, fallback = 'SIN_ASIGNAR') {
   if (!name || typeof name !== 'string') return fallback;
-  const clean = name.trim().replace(/[\\/*?:"<>|]/g, '_').replace(/\s+/g, ' ');
-  return clean.length > 0 ? clean : fallback;
+  const clean = name
+    .trim()
+    .replace(/\0/g, '')
+    .replace(/\.\.+/g, '_')
+    .replace(/[\\/*?:"<>|]/g, '_')
+    .replace(/^\.+|\.+$/g, '_')
+    .replace(/\s+/g, ' ');
+  return clean.length > 0 ? clean.slice(0, 80) : fallback;
 }
 
 // Helper para formatear fechas a YYYY-MM-DD

@@ -342,7 +342,7 @@ export default function Asignaciones() {
         </div>
 
         {/* Columna Derecha: Equipos Reales Asignados */}
-        <div>
+        <div style={{ minWidth: 0, width: '100%' }}>
           <div className="content-panel">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -484,12 +484,12 @@ export default function Asignaciones() {
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Trazabilidad registrada</span>
               </div>
 
-              <div className="custom-table-wrap">
-                <table className="custom-table">
+              <div className="custom-table-wrap" style={{ width: '100%', overflowX: 'auto' }}>
+                <table className="custom-table" style={{ minWidth: '100%', width: '100%' }}>
                   <thead>
                     <tr>
-                      <th>Fecha</th>
-                      <th>Tipo Evento</th>
+                      <th style={{ width: '170px' }}>Fecha</th>
+                      <th style={{ width: '140px' }}>Tipo Evento</th>
                       <th>Descripción</th>
                     </tr>
                   </thead>
@@ -503,13 +503,15 @@ export default function Asignaciones() {
                     ) : (
                       eventosUsuario.map((ev) => (
                         <tr key={ev.id}>
-                          <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          <td style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                             {new Date(ev.fecha_evento).toLocaleString('es-CO')}
                           </td>
-                          <td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
                             <span className="status-pill prestado">{ev.tipo_evento}</span>
                           </td>
-                          <td style={{ fontSize: '13px' }}>{ev.descripcion}</td>
+                          <td style={{ fontSize: '13px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                            {ev.descripcion}
+                          </td>
                         </tr>
                       ))
                     )}

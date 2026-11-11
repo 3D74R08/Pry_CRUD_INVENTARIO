@@ -6,6 +6,8 @@ export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const res = await login(email, password, mfaRequired ? mfaCode : undefined);
+      if (res && res.mfaRequired) {
+        setMfaRequired(true);
+      }
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');
     } finally {
@@ -172,83 +177,155 @@ export default function Login() {
                 gap: '8px',
               }}
             >
-              <span>⚠️</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="form-group">
-              <label htmlFor="login-email" className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: '6px' }}>
-                Correo Institucional
-              </label>
-              <div className="login-input-wrapper">
-                <span className="login-input-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2"/>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                  </svg>
-                </span>
-                <input
-                  id="login-email"
-                  type="email"
-                  className="form-control login-input-with-icon"
-                  placeholder="usuario@empresa.local"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="username"
-                  required
-                />
-              </div>
-            </div>
+            {!mfaRequired ? (
+              <>
+                <div className="form-group">
+                  <label htmlFor="login-email" className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: '6px' }}>
+                    Correo Institucional
+                  </label>
+                  <div className="login-input-wrapper">
+                    <span className="login-input-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect width="20" height="16" x="2" y="4" rx="2"/>
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                      </svg>
+                    </span>
+                    <input
+                      id="login-email"
+                      type="email"
+                      className="form-control login-input-with-icon"
+                      placeholder="usuario@empresa.local"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label htmlFor="login-password" className="form-label" style={{ fontWeight: 600, fontSize: '13px', margin: 0 }}>
-                  Contraseña
-                </label>
-              </div>
-              <div className="login-input-wrapper">
-                <span className="login-input-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                </span>
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-control login-input-with-icon"
-                  style={{ paddingRight: '40px' }}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label htmlFor="login-password" className="form-label" style={{ fontWeight: 600, fontSize: '13px', margin: 0 }}>
+                      Contraseña
+                    </label>
+                  </div>
+                  <div className="login-input-wrapper">
+                    <span className="login-input-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                    </span>
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-control login-input-with-icon"
+                      style={{ paddingRight: '40px' }}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="login-pw-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    >
+                      {showPassword ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                          <line x1="2" x2="22" y1="2" y2="22"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: 'rgba(37, 99, 235, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    color: 'var(--text-main)',
+                    fontSize: '12.5px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: '#60a5fa', marginBottom: '4px' }}>
+                    Verificación en Dos Pasos (MFA)
+                  </div>
+                  Ingresa el código temporal de 6 dígitos generado por tu aplicación autenticadora (Google Authenticator, Microsoft Authenticator o Authy) o un código de recuperación.
+                </div>
+
+                <div>
+                  <label htmlFor="login-mfa-code" className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: '6px', display: 'block' }}>
+                    Código de Seguridad (6 dígitos o código de respaldo)
+                  </label>
+                  <div className="login-input-wrapper">
+                    <span className="login-input-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                    </span>
+                    <input
+                      id="login-mfa-code"
+                      type="text"
+                      className="form-control login-input-with-icon"
+                      placeholder="Ej. 123456 o ABCD-1234"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      autoComplete="one-time-code"
+                      autoFocus
+                      required
+                      style={{ letterSpacing: '0.12em', fontWeight: 700, fontFamily: 'var(--font-mono)' }}
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="button"
-                  className="login-pw-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  onClick={() => {
+                    setMfaRequired(false);
+                    setMfaCode('');
+                    setError('');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    padding: '2px 0',
+                  }}
                 >
-                  {showPassword ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
-                      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
-                      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
-                      <line x1="2" x2="22" y1="2" y2="22"/>
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
+                  ← Volver a ingresar correo y contraseña
                 </button>
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
@@ -258,11 +335,11 @@ export default function Login() {
               {loading ? (
                 <>
                   <span className="spinner-border" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></span>
-                  <span>Autenticando...</span>
+                  <span>{mfaRequired ? 'Verificando código MFA...' : 'Autenticando...'}</span>
                 </>
               ) : (
                 <>
-                  <span>Acceder a la Plataforma</span>
+                  <span>{mfaRequired ? 'Verificar y Acceder' : 'Acceder a la Plataforma'}</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                     <polyline points="12 5 19 12 12 19"></polyline>
@@ -273,7 +350,13 @@ export default function Login() {
           </form>
 
           <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid var(--border-color)', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
-            <div>🔒 Conexión segura con cifrado TLS/HTTPS · Red Corporativa</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>Conexión segura con cifrado TLS/HTTPS · Red Corporativa</span>
+            </div>
             <div style={{ marginTop: '8px' }}>
               <button
                 type="button"

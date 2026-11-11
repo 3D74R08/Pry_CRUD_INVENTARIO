@@ -70,8 +70,8 @@ router.post(
   tareasController.subirPlantillaHojaVida
 );
 
-// Consultar estado de una tarea por ID
-router.get('/:id', authenticateToken, tareasController.getTareaById);
+// Consultar estado de una tarea por ID (ADMIN y TECNICO)
+router.get('/:id', authenticateToken, authorize(['ADMIN', 'TECNICO']), tareasController.getTareaById);
 
 // Listar tareas recientes (ADMIN y TECNICO)
 router.get('/', authenticateToken, authorize(['ADMIN', 'TECNICO']), tareasController.getTareas);

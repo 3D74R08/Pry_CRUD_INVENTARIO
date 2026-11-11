@@ -6,6 +6,7 @@ try {
   const dbModule = require('./config/db');
   pool = dbModule.pool || dbModule;
 }
+const crypto = require('crypto');
 const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
 
@@ -109,7 +110,8 @@ async function getOrCreateUser(client, cedulaRaw, nombreRaw, passwordHash) {
 async function ingestExcelWorkbook(filePath) {
   console.log(`[Ingestor] Iniciando lectura de libro Excel maestro: ${filePath}`);
   const wb = XLSX.readFile(filePath);
-  const defaultPasswordHash = await bcrypt.hash('Empleado123!', 10);
+  const initialSecret = process.env.DEFAULT_PROVISION_PASSWORD || crypto.randomBytes(24).toString('base64url');
+  const defaultPasswordHash = await bcrypt.hash(initialSecret, 10);
 
   const client = await pool.connect();
   const resumen = {

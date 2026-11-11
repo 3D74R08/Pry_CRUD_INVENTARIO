@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { ZapIcon, DownloadIcon, FileTextIcon, UploadCloudIcon, RefreshCwIcon, LaptopIcon, ClockIcon, AlertTriangleIcon, XIcon, PlusIcon } from '../components/Icons';
+import { ZapIcon, DownloadIcon, FileTextIcon, UploadCloudIcon, RefreshCwIcon, LaptopIcon, ClockIcon, AlertTriangleIcon, XIcon, PlusIcon, CheckIcon } from '../components/Icons';
 
 export default function CargaMasiva({ onNavigate }) {
   const { user } = useAuth();
@@ -291,7 +291,7 @@ export default function CargaMasiva({ onNavigate }) {
       </div>
 
       {/* Sección de Plantillas Maestras y Hojas de Vida */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px', marginBottom: '20px' }}>
         {/* Tarjeta 1: Plantilla Maestra de Carga de Inventario */}
         {plantillaInfo && (
           <div
@@ -508,7 +508,9 @@ export default function CargaMasiva({ onNavigate }) {
 
           {pasoActual === 3 ? (
             <div style={{ textAlign: 'center', padding: '30px 20px' }}>
-              <div style={{ fontSize: '42px', marginBottom: '10px' }}>🎉</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: 'var(--accent)' }}>
+                <CheckIcon size={42} />
+              </div>
               <h4 style={{ fontSize: '16px', fontWeight: 700 }}>Procesamiento Finalizado</h4>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '8px 0 20px 0' }}>
                 Los registros válidos han sido incorporados en la base de datos PostgreSQL y auditados en el historial.
@@ -613,10 +615,10 @@ export default function CargaMasiva({ onNavigate }) {
                   }`}
                   style={{ fontSize: '12px', padding: '4px 10px' }}
                 >
-                  {tareaActiva.estado === 'PENDIENTE' && '⏳ PENDIENTE (En cola)'}
-                  {tareaActiva.estado === 'EN_PROCESO' && '⚙️ PROCESANDO EN WORKER...'}
-                  {tareaActiva.estado === 'COMPLETADO' && '✅ COMPLETADO'}
-                  {tareaActiva.estado === 'FALLIDO' && '❌ FALLIDO'}
+                  {tareaActiva.estado === 'PENDIENTE' && 'PENDIENTE (En cola)'}
+                  {tareaActiva.estado === 'EN_PROCESO' && 'PROCESANDO EN WORKER...'}
+                  {tareaActiva.estado === 'COMPLETADO' && 'COMPLETADO'}
+                  {tareaActiva.estado === 'FALLIDO' && 'FALLIDO'}
                 </span>
               </div>
 

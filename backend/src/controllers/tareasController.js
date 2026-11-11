@@ -2,6 +2,12 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../config/db');
 
+function sanitizeFilename(rawName, fallback = 'plantilla.xltx') {
+  if (!rawName || typeof rawName !== 'string') return fallback;
+  const base = path.basename(rawName).replace(/[^a-zA-Z0-9._-]/g, '_');
+  return base.length > 0 ? base.slice(0, 120) : fallback;
+}
+
 // Encolar tarea de carga masiva (Solo ADMIN)
 async function crearTareaCargaMasiva(req, res) {
   try {
@@ -160,8 +166,9 @@ async function subirPlantilla(req, res) {
     // Copiar archivo subido como la plantilla activa
     fs.copyFileSync(req.file.path, destinoActiva);
 
+    const safeFilename = sanitizeFilename(req.file.originalname, 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx');
     const metadata = {
-      filename: req.file.originalname,
+      filename: safeFilename,
       updatedAt: new Date().toISOString(),
       updatedBy: req.user.nombre_completo || req.user.email,
       size: req.file.size,
@@ -177,9 +184,9 @@ async function subirPlantilla(req, res) {
          VALUES ($1, 'MODIFICACION', $2, $3)`,
         [
           req.user.id,
-          `Actualización de Plantilla Oficial de Inventario: ${req.file.originalname} por ${req.user.nombre_completo}`,
+          `Actualización de Plantilla Oficial de Inventario: ${safeFilename} por ${req.user.nombre_completo}`,
           JSON.stringify({
-            archivo_original: req.file.originalname,
+            archivo_original: safeFilename,
             tamano_bytes: req.file.size,
             mimetype: req.file.mimetype,
           }),
@@ -190,7 +197,7 @@ async function subirPlantilla(req, res) {
     }
 
     return res.json({
-      message: `Plantilla oficial "${req.file.originalname}" configurada exitosamente.`,
+      message: `Plantilla oficial "${safeFilename}" configurada exitosamente.`,
       metadata,
     });
   } catch (error) {
@@ -214,14 +221,14 @@ function descargarPlantilla(req, res) {
       if (fs.existsSync(metaPath)) {
         try {
           const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-          if (meta.filename) nombreArchivo = meta.filename;
+          if (meta.filename) nombreArchivo = sanitizeFilename(meta.filename, 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx');
         } catch (_) {}
       }
     } else if (!fs.existsSync(rutaBase)) {
       return res.status(404).json({ error: 'Plantilla no encontrada en el servidor' });
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(nombreArchivo, 'FRMA-07_INVENTARIO_TECNOLOGICO.xltx')}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.template');
     const fileStream = fs.createReadStream(archivoADescargar);
     fileStream.pipe(res);
@@ -320,8 +327,9 @@ async function subirPlantillaHojaVida(req, res) {
     fs.copyFileSync(req.file.path, destinoHJ);
     fs.copyFileSync(req.file.path, destinoUpload);
 
+    const safeHJName = sanitizeFilename(req.file.originalname, 'Plantilla_HJ.xltx');
     const metadata = {
-      filename: req.file.originalname,
+      filename: safeHJName,
       updatedAt: new Date().toISOString(),
       updatedBy: req.user.nombre_completo || req.user.email,
       size: req.file.size,
@@ -338,9 +346,9 @@ async function subirPlantillaHojaVida(req, res) {
          VALUES ($1, 'MODIFICACION', $2, $3)`,
         [
           req.user.id,
-          `Actualización de Plantilla Oficial de Hoja de Vida: ${req.file.originalname} por ${req.user.nombre_completo}`,
+          `Actualización de Plantilla Oficial de Hoja de Vida: ${safeHJName} por ${req.user.nombre_completo}`,
           JSON.stringify({
-            archivo_original: req.file.originalname,
+            archivo_original: safeHJName,
             tamano_bytes: req.file.size,
             mimetype: req.file.mimetype,
           }),
@@ -351,12 +359,12 @@ async function subirPlantillaHojaVida(req, res) {
     }
 
     return res.json({
-      message: `Plantilla de Hoja de Vida "${req.file.originalname}" configurada exitosamente.`,
+      message: `Plantilla de Hoja de Vida "${safeHJName}" configurada exitosamente.`,
       metadata,
     });
   } catch (error) {
     console.error('[Tareas] Error al subir plantilla de Hoja de Vida:', error);
-    return res.status(500).json({ error: 'Error al guardar la nueva plantilla de Hoja de Vida: ' + error.message });
+    return res.status(500).json({ error: 'Error al guardar la nueva plantilla de Hoja de Vida' });
   }
 }
 
@@ -391,11 +399,11 @@ function descargarPlantillaHojaVida(req, res) {
     if (fs.existsSync(metaPath)) {
       try {
         const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-        if (meta.filename) nombreArchivo = meta.filename;
+        if (meta.filename) nombreArchivo = sanitizeFilename(meta.filename, 'Plantilla_HJ.xltx');
       } catch (_) {}
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(nombreArchivo, 'Plantilla_HJ.xltx')}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.template');
     const fileStream = fs.createReadStream(foundPath);
     fileStream.pipe(res);

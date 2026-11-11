@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     cargo VARCHAR(100),
     departamento VARCHAR(100),
     activo BOOLEAN NOT NULL DEFAULT true,
+    mfa_enabled BOOLEAN NOT NULL DEFAULT false,
+    mfa_secret VARCHAR(128),
+    mfa_backup_codes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -84,15 +87,16 @@ CREATE INDEX IF NOT EXISTS idx_equipos_ip ON equipos(ip);
 -- 3. Tabla de Trazabilidad Histórica: eventos_inventario
 CREATE TABLE IF NOT EXISTS eventos_inventario (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    equipo_id UUID REFERENCES equipos(id) ON DELETE CASCADE,
+    equipo_id UUID REFERENCES equipos(id) ON DELETE SET NULL,
     usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-    tipo_evento VARCHAR(50) NOT NULL CHECK (tipo_evento IN ('CREACION', 'ASIGNACION', 'DEVOLUCION', 'CAMBIO_ESTADO', 'MANTENIMIENTO', 'DE_BAJA', 'CARGA_MASIVA', 'PRESTAMO', 'REPORTE_FALLO')),
+    tipo_evento VARCHAR(50) NOT NULL CHECK (tipo_evento IN ('CREACION', 'ASIGNACION', 'DEVOLUCION', 'CAMBIO_ESTADO', 'MANTENIMIENTO', 'DE_BAJA', 'CARGA_MASIVA', 'PRESTAMO', 'REPORTE_FALLO', 'ELIMINACION')),
     descripcion TEXT NOT NULL,
     detalles JSONB DEFAULT '{}'::jsonb,
     fecha_evento TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_eventos_equipo_id ON eventos_inventario(equipo_id);
+CREATE INDEX IF NOT EXISTS idx_eventos_usuario_id ON eventos_inventario(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos_inventario(fecha_evento DESC);
 
 -- 3.1 Tabla de Acciones e Intervenciones de Hoja de Vida
@@ -126,6 +130,238 @@ CREATE TABLE IF NOT EXISTS tareas_worker (
 
 CREATE INDEX IF NOT EXISTS idx_tareas_estado ON tareas_worker(estado);
 CREATE INDEX IF NOT EXISTS idx_tareas_created_at ON tareas_worker(created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_tareas_creado_por ON tareas_worker(creado_por);
+
+-- 5. Tabla de Control y Revocación de Sesiones JWT (jti)
+CREATE TABLE IF NOT EXISTS sesiones_revocadas (
+    jti VARCHAR(100) PRIMARY KEY,
+    usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
+    revocado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expira_en TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sesiones_revocadas_expira ON sesiones_revocadas(expira_en);
+CREATE INDEX IF NOT EXISTS idx_sesiones_revocadas_usuario ON sesiones_revocadas(usuario_id);
+
+-- ============================================================
+-- 6. SEGURIDAD A NIVEL DE FILA (RLS) Y MÍNIMO PRIVILEGIO
+-- ============================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_inventario_role') THEN
+    CREATE ROLE app_inventario_role NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+  END IF;
+END
+$$;
+
+GRANT USAGE ON SCHEMA public TO app_inventario_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_inventario_role;
+
+-- Habilitar y forzar explícitamente RLS en todas las tablas del sistema
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usuarios FORCE ROW LEVEL SECURITY;
+ALTER TABLE equipos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE equipos FORCE ROW LEVEL SECURITY;
+ALTER TABLE eventos_inventario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eventos_inventario FORCE ROW LEVEL SECURITY;
+ALTER TABLE hoja_vida_acciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hoja_vida_acciones FORCE ROW LEVEL SECURITY;
+ALTER TABLE tareas_worker ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tareas_worker FORCE ROW LEVEL SECURITY;
+ALTER TABLE sesiones_revocadas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sesiones_revocadas FORCE ROW LEVEL SECURITY;
+
+-- 6.1 Políticas granulares para TABLA: equipos
+DROP POLICY IF EXISTS equipos_select_policy ON equipos;
+CREATE POLICY equipos_select_policy ON equipos FOR SELECT
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    OR cedula_responsable = current_setting('app.current_user_cedula', true)
+    OR usuario_asignado_id::text = current_setting('app.current_user_id', true)
+  );
+
+DROP POLICY IF EXISTS equipos_insert_policy ON equipos;
+CREATE POLICY equipos_insert_policy ON equipos FOR INSERT
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS equipos_update_policy ON equipos;
+CREATE POLICY equipos_update_policy ON equipos FOR UPDATE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    OR cedula_responsable = current_setting('app.current_user_cedula', true)
+    OR usuario_asignado_id::text = current_setting('app.current_user_id', true)
+  )
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    OR cedula_responsable = current_setting('app.current_user_cedula', true)
+    OR usuario_asignado_id::text = current_setting('app.current_user_id', true)
+  );
+
+DROP POLICY IF EXISTS equipos_delete_policy ON equipos;
+CREATE POLICY equipos_delete_policy ON equipos FOR DELETE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+  );
+
+-- 6.2 Políticas granulares para TABLA: eventos_inventario (Auditoría Inmutable)
+DROP POLICY IF EXISTS eventos_select_policy ON eventos_inventario;
+CREATE POLICY eventos_select_policy ON eventos_inventario FOR SELECT
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    OR usuario_id::text = current_setting('app.current_user_id', true)
+    OR EXISTS (
+      SELECT 1 FROM equipos eq
+      WHERE eq.id = eventos_inventario.equipo_id
+        AND (
+          eq.cedula_responsable = current_setting('app.current_user_cedula', true)
+          OR eq.usuario_asignado_id::text = current_setting('app.current_user_id', true)
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS eventos_insert_policy ON eventos_inventario;
+CREATE POLICY eventos_insert_policy ON eventos_inventario FOR INSERT
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_id', true), '') = ''
+    OR usuario_id IS NULL
+    OR usuario_id::text = current_setting('app.current_user_id', true)
+    OR current_setting('app.current_user_rol', true) = 'ADMIN'
+  );
+
+DROP POLICY IF EXISTS eventos_update_policy ON eventos_inventario;
+CREATE POLICY eventos_update_policy ON eventos_inventario FOR UPDATE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+  )
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS eventos_delete_policy ON eventos_inventario;
+CREATE POLICY eventos_delete_policy ON eventos_inventario FOR DELETE
+  USING (false);
+
+-- 6.3 Políticas granulares para TABLA: usuarios
+DROP POLICY IF EXISTS usuarios_select_policy ON usuarios;
+CREATE POLICY usuarios_select_policy ON usuarios FOR SELECT
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    OR id::text = current_setting('app.current_user_id', true)
+  );
+
+DROP POLICY IF EXISTS usuarios_insert_policy ON usuarios;
+CREATE POLICY usuarios_insert_policy ON usuarios FOR INSERT
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS usuarios_update_policy ON usuarios;
+CREATE POLICY usuarios_update_policy ON usuarios FOR UPDATE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+    OR id::text = current_setting('app.current_user_id', true)
+  )
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+    OR id::text = current_setting('app.current_user_id', true)
+  );
+
+DROP POLICY IF EXISTS usuarios_delete_policy ON usuarios;
+CREATE POLICY usuarios_delete_policy ON usuarios FOR DELETE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+    AND id::text != COALESCE(current_setting('app.current_user_id', true), '')
+  );
+
+-- 6.4 Políticas granulares para TABLA: hoja_vida_acciones
+DROP POLICY IF EXISTS hoja_vida_select_policy ON hoja_vida_acciones;
+CREATE POLICY hoja_vida_select_policy ON hoja_vida_acciones FOR SELECT
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    OR EXISTS (
+      SELECT 1 FROM equipos eq
+      WHERE eq.id = hoja_vida_acciones.equipo_id
+        AND (
+          eq.cedula_responsable = current_setting('app.current_user_cedula', true)
+          OR eq.usuario_asignado_id::text = current_setting('app.current_user_id', true)
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS hoja_vida_insert_policy ON hoja_vida_acciones;
+CREATE POLICY hoja_vida_insert_policy ON hoja_vida_acciones FOR INSERT
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS hoja_vida_update_policy ON hoja_vida_acciones;
+CREATE POLICY hoja_vida_update_policy ON hoja_vida_acciones FOR UPDATE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  )
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS hoja_vida_delete_policy ON hoja_vida_acciones;
+CREATE POLICY hoja_vida_delete_policy ON hoja_vida_acciones FOR DELETE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  );
+
+-- 6.5 Políticas granulares para TABLA: tareas_worker
+DROP POLICY IF EXISTS tareas_select_policy ON tareas_worker;
+CREATE POLICY tareas_select_policy ON tareas_worker FOR SELECT
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS tareas_insert_policy ON tareas_worker;
+CREATE POLICY tareas_insert_policy ON tareas_worker FOR INSERT
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+    AND (
+      COALESCE(current_setting('app.current_user_id', true), '') = ''
+      OR creado_por IS NULL
+      OR creado_por::text = current_setting('app.current_user_id', true)
+    )
+  );
+
+DROP POLICY IF EXISTS tareas_update_policy ON tareas_worker;
+CREATE POLICY tareas_update_policy ON tareas_worker FOR UPDATE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  )
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'TECNICO', 'SYSTEM')
+  );
+
+DROP POLICY IF EXISTS tareas_delete_policy ON tareas_worker;
+CREATE POLICY tareas_delete_policy ON tareas_worker FOR DELETE
+  USING (
+    COALESCE(current_setting('app.current_user_rol', true), '') IN ('', 'ADMIN', 'SYSTEM')
+  );
+
+-- 6.6 Políticas granulares para TABLA: sesiones_revocadas
+DROP POLICY IF EXISTS sesiones_select_policy ON sesiones_revocadas;
+CREATE POLICY sesiones_select_policy ON sesiones_revocadas FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS sesiones_insert_policy ON sesiones_revocadas;
+CREATE POLICY sesiones_insert_policy ON sesiones_revocadas FOR INSERT
+  WITH CHECK (
+    COALESCE(current_setting('app.current_user_id', true), '') = ''
+    OR usuario_id IS NULL
+    OR usuario_id::text = current_setting('app.current_user_id', true)
+    OR current_setting('app.current_user_rol', true) = 'ADMIN'
+  );
+
+DROP POLICY IF EXISTS sesiones_delete_policy ON sesiones_revocadas;
+CREATE POLICY sesiones_delete_policy ON sesiones_revocadas FOR DELETE
+  USING (true);
 
 -- Trigger para updated_at automático
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 /**
  * Componente híbrido de selección con opción de valor personalizado.
  * Muestra un menú desplegable con opciones predeterminadas y existentes,
- * permitiendo además ingresar un nuevo valor libremente con '➕ Otro'.
+ * permitiendo además ingresar un nuevo valor libremente con '+ Otro'.
  */
 export default function SelectOrCustomInput({
   label,
@@ -115,7 +115,7 @@ export default function SelectOrCustomInput({
             <option value={value}>{value} (Personalizado)</option>
           )}
           <option value="__OTRO__" style={{ fontWeight: 700, color: '#0284c7' }}>
-            ➕ Otro / Escribir nuevo...
+            + Otro / Escribir nuevo...
           </option>
         </select>
       )}

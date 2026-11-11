@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const xlsx = require('xlsx');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
@@ -247,8 +248,9 @@ async function procesarArchivo(tarea) {
   let fallidos = 0;
   const errores = [];
 
-  // Hash estándar para nuevos usuarios auto-creados: Empleado123!
-  const defaultPasswordHash = await bcrypt.hash('Empleado123!', 10);
+  // Generar hash seguro sin credenciales fijas en código fuente
+  const initialSecret = process.env.DEFAULT_PROVISION_PASSWORD || crypto.randomBytes(24).toString('base64url');
+  const defaultPasswordHash = await bcrypt.hash(initialSecret, 10);
 
   for (let i = 0; i < rawRows.length; i++) {
     const row = rawRows[i];

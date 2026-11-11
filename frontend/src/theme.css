@@ -639,3 +639,121 @@ body,
 .switch-track.active .switch-thumb {
   transform: translateX(18px);
 }
+
+/* ============================================================
+   RESPONSIVIDAD INTEGRAL Y CENTRADO DE TODOS LOS MÓDULOS
+   ============================================================ */
+
+.equipos-module-container,
+.content-panel,
+.card,
+.table-container,
+.custom-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.table-container,
+.custom-table-wrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.asignaciones-split-grid > *,
+.carga-masiva-split-grid > *,
+.reports-split-grid > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Centrado estricto del timeline de historial y modales */
+.timeline {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.timeline-item {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  word-break: break-word !important;
+}
+
+.modal-backdrop {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+
+.modal-content,
+.modal-window {
+  margin: 0 auto !important;
+  max-width: min(94vw, 880px);
+  box-sizing: border-box !important;
+}
+
+/* Soporte para densidad de tablas configurable en Configuración */
+html[data-density="compact"] .custom-table td,
+html[data-density="compact"] .table-container table td {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  font-size: 12px !important;
+}
+
+/* Adaptación en pantallas medianas y móviles */
+@media (max-width: 1024px) {
+  .asignaciones-split-grid,
+  .carga-masiva-split-grid,
+  .reports-split-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  }
+
+  .filters-row,
+  .search-action-row,
+  .card-header,
+  .panel-header {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .legacy-tabs-bar,
+  .asignaciones-tabs,
+  .tab-pills-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100% !important;
+  }
+
+  .legacy-tab-btn,
+  .asignaciones-tab-btn,
+  .tab-pill-btn {
+    flex-shrink: 0 !important;
+  }
+
+  .form-2col,
+  .form-3col,
+  .form-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modern-pagination-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+}

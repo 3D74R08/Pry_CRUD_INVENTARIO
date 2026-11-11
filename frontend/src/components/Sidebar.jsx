@@ -198,6 +198,18 @@ export default function Sidebar({
               <AlertTriangle size={18} />
               <span>Reportar Fallo</span>
             </button>
+
+            <button
+              onClick={() => handleNav('configuracion')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'configuracion'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
+            >
+              <Settings size={18} />
+              <span>Configuración</span>
+            </button>
           </>
         ) : (
           /* Administrador y Técnico (Mockup Logistics) */
@@ -302,11 +314,12 @@ export default function Sidebar({
             </button>
 
             <button
-              onClick={() => {
-                if (onOpenPrivacy) onOpenPrivacy();
-                if (onClose) onClose();
-              }}
-              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+              onClick={() => handleNav('configuracion')}
+              className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                currentView === 'configuracion'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+              }`}
             >
               <Settings size={18} />
               <span>Configuración</span>
@@ -345,9 +358,20 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Versión */}
-        <div className="text-center text-xs text-slate-500 font-medium">
-          v1.0.0
+        {/* Enlace Legal y Versión */}
+        <div className="flex items-center justify-between px-1 text-xs text-slate-500 font-medium">
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenPrivacy) onOpenPrivacy();
+              if (onClose) onClose();
+            }}
+            className="hover:text-slate-300 transition-colors flex items-center gap-1"
+          >
+            <Lock size={11} />
+            <span>Privacidad y Términos</span>
+          </button>
+          <span>v1.0.0</span>
         </div>
       </div>
     </aside>

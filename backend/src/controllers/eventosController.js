@@ -44,14 +44,14 @@ async function getEventosRecientes(req, res) {
     let query = `
       SELECT 
         ev.*,
-        eq.placa as equipo_placa,
-        eq.tipo as equipo_tipo,
-        eq.marca as equipo_marca,
-        eq.modelo as equipo_modelo,
+        COALESCE(eq.placa, ev.detalles->>'equipo_placa', ev.detalles->>'placa', ev.detalles->'nuevo'->>'placa', ev.detalles->'anterior'->>'placa', 'Eliminado') as equipo_placa,
+        COALESCE(eq.tipo, ev.detalles->>'equipo_tipo', ev.detalles->>'tipo', ev.detalles->'nuevo'->>'tipo', ev.detalles->'anterior'->>'tipo', 'Activo TI') as equipo_tipo,
+        COALESCE(eq.marca, ev.detalles->>'equipo_marca', ev.detalles->>'marca', ev.detalles->'nuevo'->>'marca', ev.detalles->'anterior'->>'marca', 'Equipo') as equipo_marca,
+        COALESCE(eq.modelo, ev.detalles->>'equipo_modelo', ev.detalles->>'modelo', ev.detalles->'nuevo'->>'modelo', ev.detalles->'anterior'->>'modelo', '') as equipo_modelo,
         COALESCE(u.nombre_completo, 'Administrador TI / Sistema') as usuario_nombre,
         u.email as usuario_email
       FROM eventos_inventario ev
-      JOIN equipos eq ON ev.equipo_id = eq.id
+      LEFT JOIN equipos eq ON ev.equipo_id = eq.id
       LEFT JOIN usuarios u ON ev.usuario_id = u.id
     `;
     const params = [];
@@ -81,14 +81,14 @@ async function getAllEventos(req, res) {
     let query = `
       SELECT 
         ev.*,
-        eq.placa as equipo_placa,
-        eq.tipo as equipo_tipo,
-        eq.marca as equipo_marca,
-        eq.modelo as equipo_modelo,
+        COALESCE(eq.placa, ev.detalles->>'equipo_placa', ev.detalles->>'placa', ev.detalles->'nuevo'->>'placa', ev.detalles->'anterior'->>'placa', 'Eliminado') as equipo_placa,
+        COALESCE(eq.tipo, ev.detalles->>'equipo_tipo', ev.detalles->>'tipo', ev.detalles->'nuevo'->>'tipo', ev.detalles->'anterior'->>'tipo', 'Activo TI') as equipo_tipo,
+        COALESCE(eq.marca, ev.detalles->>'equipo_marca', ev.detalles->>'marca', ev.detalles->'nuevo'->>'marca', ev.detalles->'anterior'->>'marca', 'Equipo') as equipo_marca,
+        COALESCE(eq.modelo, ev.detalles->>'equipo_modelo', ev.detalles->>'modelo', ev.detalles->'nuevo'->>'modelo', ev.detalles->'anterior'->>'modelo', '') as equipo_modelo,
         COALESCE(u.nombre_completo, 'Administrador TI / Sistema') as usuario_nombre,
         u.email as usuario_email
       FROM eventos_inventario ev
-      JOIN equipos eq ON ev.equipo_id = eq.id
+      LEFT JOIN equipos eq ON ev.equipo_id = eq.id
       LEFT JOIN usuarios u ON ev.usuario_id = u.id
       WHERE 1=1
     `;
@@ -107,12 +107,14 @@ async function getAllEventos(req, res) {
 
     if (busqueda) {
       params.push(`%${busqueda}%`);
-      query += ` AND (eq.placa ILIKE $${pIndex} OR eq.modelo ILIKE $${pIndex} OR u.nombre_completo ILIKE $${pIndex} OR ev.detalles::text ILIKE $${pIndex})`;
+      query += ` AND (eq.placa ILIKE $${pIndex} OR eq.modelo ILIKE $${pIndex} OR u.nombre_completo ILIKE $${pIndex} OR ev.descripcion ILIKE $${pIndex} OR ev.detalles::text ILIKE $${pIndex})`;
       pIndex++;
     }
 
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+    const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
     query += ` ORDER BY ev.fecha_evento DESC LIMIT $${pIndex++} OFFSET $${pIndex++}`;
-    params.push(parseInt(limit, 10), parseInt(offset, 10));
+    params.push(safeLimit, safeOffset);
 
     const result = await db.query(query, params);
     return res.json({ eventos: result.rows });

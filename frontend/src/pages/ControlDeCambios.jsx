@@ -46,41 +46,145 @@ export default function ControlDeCambios() {
   const getTipoEventoBadge = (tipo) => {
     switch (tipo) {
       case 'CREACION':
-        return <span className="badge badge-funcional"><PlusIcon size={12} /> CREACIÓN</span>;
+        return (
+          <span className="badge badge-funcional">
+            <PlusIcon size={12} /> CREACIÓN
+          </span>
+        );
       case 'ASIGNACION':
-        return <span className="badge badge-funcional"><TagIcon size={12} /> ASIGNACIÓN</span>;
+        return (
+          <span className="badge badge-funcional">
+            <TagIcon size={12} /> ASIGNACIÓN
+          </span>
+        );
       case 'PRESTAMO':
-        return <span className="badge badge-revisar"><ArrowLeftRightIcon size={12} /> PRÉSTAMO</span>;
+        return (
+          <span className="badge badge-revisar">
+            <ArrowLeftRightIcon size={12} /> PRÉSTAMO
+          </span>
+        );
       case 'DEVOLUCION':
-        return <span className="badge badge-funcional"><RotateCcwIcon size={12} /> DEVOLUCIÓN</span>;
+        return (
+          <span className="badge badge-funcional">
+            <RotateCcwIcon size={12} /> DEVOLUCIÓN
+          </span>
+        );
       case 'REPORTE_FALLO':
-        return <span className="badge badge-danado"><AlertTriangleIcon size={12} /> REPORTE FALLO</span>;
+      case 'MANTENIMIENTO':
+        return (
+          <span className="badge badge-danado">
+            <AlertTriangleIcon size={12} /> {tipo === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'REPORTE FALLO'}
+          </span>
+        );
       case 'BAJA':
-        return <span className="badge badge-baja"><ArchiveIcon size={12} /> DADO DE BAJA</span>;
+      case 'DE_BAJA':
+        return (
+          <span className="badge badge-baja">
+            <ArchiveIcon size={12} /> DADO DE BAJA
+          </span>
+        );
+      case 'ELIMINACION':
+        return (
+          <span className="badge badge-danado">
+            <ArchiveIcon size={12} /> ELIMINADO
+          </span>
+        );
       case 'MODIFICACION':
-        return <span className="badge" style={{ background: 'var(--info-bg)', color: 'var(--info-color)' }}><EditIcon size={12} /> MODIFICACIÓN</span>;
+      case 'CAMBIO_ESTADO':
+      case 'CARGA_MASIVA':
+        return (
+          <span
+            className="badge"
+            style={{ background: 'var(--info-bg)', color: 'var(--info-color)' }}
+          >
+            <EditIcon size={12} /> {tipo.replace('_', ' ')}
+          </span>
+        );
       default:
         return <span className="badge">{tipo}</span>;
     }
   };
 
-  const formatDetalles = (detalles) => {
-    if (!detalles) return 'Sin detalles adicionales';
-    if (typeof detalles === 'string') return detalles;
-    if (detalles.motivo) return `Motivo: ${detalles.motivo}`;
-    if (detalles.observaciones) return `Observaciones: ${detalles.observaciones}`;
-    if (detalles.responsable) return `Asignado a: ${detalles.responsable}`;
-    if (detalles.origen) return `Origen: ${detalles.origen}`;
-    return JSON.stringify(detalles);
+  const renderDetallesLegibles = (ev) => {
+    const detalles = ev?.detalles;
+    const descripcionBase = ev?.descripcion || '';
+    const chips = [];
+
+    if (detalles && typeof detalles === 'object') {
+      if (detalles.motivo) chips.push(`Motivo: ${detalles.motivo}`);
+      if (detalles.accion_realizada) chips.push(`Acción: ${detalles.accion_realizada}`);
+      if (detalles.procedimiento_realizado) chips.push(`Proc.: ${detalles.procedimiento_realizado}`);
+      if (detalles.responsable || detalles.responsable_nombre) {
+        chips.push(`Responsable: ${detalles.responsable || detalles.responsable_nombre}`);
+      }
+      if (detalles.quien_recibe) chips.push(`Recibe: ${detalles.quien_recibe}`);
+      if (detalles.sede) chips.push(`Sede: ${detalles.sede}`);
+      if (detalles.area) chips.push(`Área: ${detalles.area}`);
+      if (detalles.observaciones) chips.push(`Obs.: ${detalles.observaciones}`);
+      if (detalles.origen) chips.push(`Origen: ${detalles.origen}`);
+
+      // Si es una modificación con { anterior, nuevo }, resumir los campos que cambiaron
+      if (detalles.anterior && detalles.nuevo && typeof detalles.nuevo === 'object') {
+        const camposCambiados = Object.keys(detalles.nuevo).filter((k) => {
+          if (['id', 'created_at', 'updated_at', 'creado_por'].includes(k)) return false;
+          return String(detalles.anterior[k] ?? '') !== String(detalles.nuevo[k] ?? '');
+        });
+        if (camposCambiados.length > 0) {
+          chips.push(
+            `Campos actualizados: ${camposCambiados.slice(0, 5).join(', ')}${
+              camposCambiados.length > 5 ? '...' : ''
+            }`
+          );
+        }
+      } else if (detalles.updatedFields && typeof detalles.updatedFields === 'object') {
+        const keys = Object.keys(detalles.updatedFields);
+        if (keys.length > 0) {
+          chips.push(`Actualizado: ${keys.slice(0, 5).join(', ')}`);
+        }
+      }
+    } else if (typeof detalles === 'string' && detalles.trim() && !detalles.trim().startsWith('{')) {
+      chips.push(detalles.trim());
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', wordBreak: 'break-word', whiteSpace: 'normal' }}>
+        {descripcionBase && (
+          <div style={{ fontWeight: 500, color: 'var(--text-main)', lineHeight: 1.35 }}>
+            {descripcionBase}
+          </div>
+        )}
+        {chips.length > 0 ? (
+          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+            {chips.join(' · ')}
+          </div>
+        ) : (
+          !descripcionBase && (
+            <span style={{ color: 'var(--text-muted)' }}>Registro de auditoría verificado</span>
+          )
+        )}
+      </div>
+    );
   };
 
   return (
-    <div>
+    <div className="w-full max-w-full mx-auto min-w-0">
       {/* Header */}
-      <div className="card-header" style={{ marginBottom: '16px' }}>
+      <div
+        className="card-header"
+        style={{
+          marginBottom: '16px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '12px',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Control de Cambios & Auditoría Inmutable</h2>
-          <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>
+            Control de Cambios y Auditoría Inmutable
+          </h2>
+          <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Registro cronológico inmodificable de cada transacción sobre los activos tecnológicos
           </p>
         </div>
@@ -92,20 +196,25 @@ export default function ControlDeCambios() {
 
       {/* Filtros de Auditoría */}
       <div className="card" style={{ padding: '14px 18px', marginBottom: '16px' }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '220px' }}>
+        <form
+          onSubmit={handleSearchSubmit}
+          style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
+        >
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
             <input
               type="text"
               className="form-control"
+              style={{ width: '100%' }}
               placeholder="Buscar por placa, modelo o responsable..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
           </div>
 
-          <div style={{ minWidth: '200px' }}>
+          <div style={{ flex: '0 1 220px', minWidth: '180px' }}>
             <select
               className="form-control"
+              style={{ width: '100%' }}
               value={filtroTipo}
               onChange={(e) => setFiltroTipo(e.target.value)}
             >
@@ -114,8 +223,10 @@ export default function ControlDeCambios() {
               <option value="ASIGNACION">Asignación</option>
               <option value="PRESTAMO">Préstamo Temporal</option>
               <option value="DEVOLUCION">Devolución</option>
+              <option value="MANTENIMIENTO">Mantenimiento / Hoja de Vida</option>
               <option value="REPORTE_FALLO">Reporte de Fallo</option>
-              <option value="BAJA">Desincorporación / Baja</option>
+              <option value="DE_BAJA">Desincorporación / Baja</option>
+              <option value="ELIMINACION">Eliminación Física</option>
               <option value="MODIFICACION">Modificación Técnica</option>
             </select>
           </div>
@@ -126,16 +237,16 @@ export default function ControlDeCambios() {
         </form>
       </div>
 
-      {/* Tabla de Eventos */}
-      <div className="table-container">
-        <table>
+      {/* Tabla de Eventos Centrada y Responsiva */}
+      <div className="table-container" style={{ width: '100%', overflowX: 'auto' }}>
+        <table style={{ width: '100%', tableLayout: 'auto' }}>
           <thead>
             <tr>
-              <th>Fecha y Hora</th>
-              <th>Tipo de Evento</th>
-              <th>Activo / Placa</th>
-              <th>Hardware</th>
-              <th>Operador / Usuario</th>
+              <th style={{ width: '150px' }}>Fecha y Hora</th>
+              <th style={{ width: '140px' }}>Tipo de Evento</th>
+              <th style={{ width: '110px' }}>Activo / Placa</th>
+              <th style={{ width: '180px' }}>Hardware</th>
+              <th style={{ width: '180px' }}>Operador / Usuario</th>
               <th>Detalles de la Acción</th>
             </tr>
           </thead>
@@ -148,7 +259,10 @@ export default function ControlDeCambios() {
               </tr>
             ) : eventos.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                <td
+                  colSpan="6"
+                  style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}
+                >
                   No se encontraron eventos con los filtros seleccionados.
                 </td>
               </tr>
@@ -158,26 +272,30 @@ export default function ControlDeCambios() {
                   <td style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
                     {new Date(ev.fecha_evento).toLocaleString('es-CO')}
                   </td>
-                  <td>{getTipoEventoBadge(ev.tipo_evento)}</td>
-                  <td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{getTipoEventoBadge(ev.tipo_evento)}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     <span className="placa-tag">{ev.equipo_placa || 'N/A'}</span>
                   </td>
                   <td>
                     <div style={{ fontWeight: 600, fontSize: '13px' }}>
                       {ev.equipo_marca} {ev.equipo_modelo}
                     </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{ev.equipo_tipo}</div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                      {ev.equipo_tipo}
+                    </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '12.5px', fontWeight: 600 }}>
                       {ev.usuario_nombre || 'Sistema Automatizado'}
                     </div>
                     {ev.usuario_email && (
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{ev.usuario_email}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {ev.usuario_email}
+                      </div>
                     )}
                   </td>
-                  <td style={{ fontSize: '12.5px' }}>
-                    {formatDetalles(ev.detalles)}
+                  <td style={{ fontSize: '12.5px', maxWidth: '420px', whiteSpace: 'normal' }}>
+                    {renderDetallesLegibles(ev)}
                   </td>
                 </tr>
               ))

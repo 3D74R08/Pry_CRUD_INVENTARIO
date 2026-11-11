@@ -499,19 +499,55 @@ async function darDeBaja(req, res) {
   }
 }
 
-// Eliminar equipo (Solo ADMIN)
+// Eliminar equipo (Solo ADMIN) conservando el historial de auditoría inmutable
 async function deleteEquipo(req, res) {
   try {
     const { id } = req.params;
-    const current = await db.query('SELECT placa, marca, modelo FROM equipos WHERE id = $1', [id]);
+    const current = await db.query('SELECT * FROM equipos WHERE id = $1', [id]);
     if (current.rows.length === 0) {
       return res.status(404).json({ error: 'Equipo no encontrado' });
     }
 
+    const eq = current.rows[0];
+    const snapshotMeta = {
+      equipo_placa: eq.placa,
+      equipo_marca: eq.marca,
+      equipo_modelo: eq.modelo,
+      equipo_tipo: eq.tipo,
+    };
+
+    // 1. Preservar los datos identificadores del activo en todos sus eventos históricos previos
+    await db.query(
+      `UPDATE eventos_inventario
+       SET detalles = COALESCE(detalles, '{}'::jsonb) || $2::jsonb
+       WHERE equipo_id = $1`,
+      [id, JSON.stringify(snapshotMeta)]
+    );
+
+    // 2. Registrar el evento de auditoría de eliminación antes de borrar el registro físico
+    await db.query(
+      `INSERT INTO eventos_inventario (equipo_id, usuario_id, tipo_evento, descripcion, detalles)
+       VALUES ($1, $2, 'ELIMINACION', $3, $4)`,
+      [
+        id,
+        req.user.id,
+        `Eliminación física del activo ${eq.placa || 'S/P'} (${eq.marca || ''} ${eq.modelo || ''}) del inventario`,
+        JSON.stringify({
+          ...snapshotMeta,
+          serial: eq.serial,
+          sede: eq.sede,
+          area: eq.area,
+          responsable_nombre: eq.responsable_nombre,
+          estado_previo: eq.estado,
+        }),
+      ]
+    );
+
+    // 3. Eliminar el equipo (eventos_inventario conserva las filas con equipo_id = NULL)
     await db.query('DELETE FROM equipos WHERE id = $1', [id]);
 
     return res.json({
-      message: `Equipo ${current.rows[0].placa} eliminado satisfactoriamente`,
+      message: `Equipo ${eq.placa} eliminado satisfactoriamente (historial conservado en auditoría)`,
     });
   } catch (error) {
     console.error('[Equipos] Error al eliminar equipo:', error);
@@ -522,7 +558,16 @@ async function deleteEquipo(req, res) {
 // Obtener conteos por cada módulo en tiempo real
 async function getConteosModulos(req, res) {
   try {
-    const result = await db.query(`
+    const { rol, cedula, id: userId } = req.user;
+    let whereClause = '';
+    const params = [];
+    if (rol === 'EMPLEADO') {
+      params.push(cedula, userId);
+      whereClause = 'WHERE (cedula_responsable = $1 OR usuario_asignado_id = $2)';
+    }
+
+    const result = await db.query(
+      `
       SELECT 
         COUNT(*) AS todos,
         COUNT(*) FILTER (WHERE categoria = 'EQUIPOS_PRESTAMOS' AND (modalidad IS NULL OR modalidad != 'PRESTAMO_TEMPORAL')) AS equipos_prestamos,
@@ -534,8 +579,11 @@ async function getConteosModulos(req, res) {
         COUNT(*) FILTER (WHERE categoria = 'PERIFERICOS' OR tipo IN ('HUELLERO', 'Periférico', 'Monitor', 'Teclado')) AS perifericos,
         COUNT(*) FILTER (WHERE categoria = 'UPS' OR tipo ILIKE '%ups%') AS ups,
         COUNT(*) FILTER (WHERE categoria = 'BAJAS' OR estado = 'DE_BAJA') AS bajas
-      FROM equipos;
-    `);
+      FROM equipos
+      ${whereClause};
+    `,
+      params
+    );
     const row = result.rows[0];
     return res.json({
       conteos: {
@@ -708,25 +756,39 @@ async function reportarFallo(req, res) {
 // Obtener resumen agrupado de asignaciones por Áreas y por Sedes
 async function getResumenAsignaciones(req, res) {
   try {
-    const areasRes = await db.query(`
+    const { rol, cedula, id: userId } = req.user;
+    let ownerFilter = '';
+    const params = [];
+    if (rol === 'EMPLEADO') {
+      params.push(cedula, userId);
+      ownerFilter = 'AND (cedula_responsable = $1 OR usuario_asignado_id = $2)';
+    }
+
+    const areasRes = await db.query(
+      `
       SELECT 
         COALESCE(NULLIF(TRIM(area), ''), 'SIN AREA') AS area,
         COUNT(*) AS total_equipos
       FROM equipos
-      WHERE estado != 'DE_BAJA'
+      WHERE estado != 'DE_BAJA' ${ownerFilter}
       GROUP BY COALESCE(NULLIF(TRIM(area), ''), 'SIN AREA')
       ORDER BY total_equipos DESC
-    `);
+    `,
+      params
+    );
 
-    const sedesRes = await db.query(`
+    const sedesRes = await db.query(
+      `
       SELECT 
         COALESCE(NULLIF(TRIM(sede), ''), 'SIN SEDE') AS sede,
         COUNT(*) AS total_equipos
       FROM equipos
-      WHERE estado != 'DE_BAJA'
+      WHERE estado != 'DE_BAJA' ${ownerFilter}
       GROUP BY COALESCE(NULLIF(TRIM(sede), ''), 'SIN SEDE')
       ORDER BY total_equipos DESC
-    `);
+    `,
+      params
+    );
 
     return res.json({
       areas: areasRes.rows,
@@ -738,11 +800,11 @@ async function getResumenAsignaciones(req, res) {
   }
 }
 
-// Descargar Hoja de Vida en formato oficial .xlsx
 // Obtener información detallada y acciones de la Hoja de Vida de un equipo
 async function getHojaVida(req, res) {
   try {
     const { id } = req.params;
+    const { rol, cedula, id: userId } = req.user;
 
     const result = await db.query(
       `SELECT 
@@ -762,6 +824,14 @@ async function getHojaVida(req, res) {
     }
 
     const equipo = result.rows[0];
+
+    // Validación RBAC estricta si es empleado
+    if (rol === 'EMPLEADO') {
+      const isOwner = equipo.cedula_responsable === cedula || equipo.usuario_asignado_id === userId;
+      if (!isOwner) {
+        return res.status(403).json({ error: 'No tienes permiso para consultar la hoja de vida de este equipo' });
+      }
+    }
 
     const accionesRes = await db.query(
       `SELECT * FROM hoja_vida_acciones WHERE equipo_id = $1 ORDER BY fecha ASC, created_at ASC`,
@@ -1064,7 +1134,7 @@ async function descargarHojaDeVida(req, res) {
     });
   } catch (error) {
     console.error('[Equipos] Error al generar Hoja de Vida:', error);
-    return res.status(500).json({ error: 'Error al generar la Hoja de Vida del equipo: ' + error.message });
+    return res.status(500).json({ error: 'Error al generar la Hoja de Vida del equipo' });
   }
 }
 
@@ -1117,7 +1187,7 @@ async function descargarActaEntrega(req, res) {
     });
   } catch (error) {
     console.error('[Equipos] Error al generar Acta de Entrega:', error);
-    return res.status(500).json({ error: 'Error al generar el Acta de Entrega: ' + error.message });
+    return res.status(500).json({ error: 'Error al generar el Acta de Entrega' });
   }
 }
 

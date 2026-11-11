@@ -538,7 +538,7 @@ export default function ModalFirmaActa({ isOpen, onClose, equipo, onDescargado }
                           textAlign: 'center',
                         }}
                       >
-                        ✍️ Dibuja la firma aquí con el mouse o lápiz táctil
+                        Dibuja la firma aquí con el mouse o lápiz táctil
                       </div>
                     )}
                   </div>
@@ -672,7 +672,7 @@ export default function ModalFirmaActa({ isOpen, onClose, equipo, onDescargado }
                           textAlign: 'center',
                         }}
                       >
-                        ✍️ El colaborador puede firmar aquí con el dedo o mouse
+                        El colaborador puede firmar aquí con el dedo o mouse
                       </div>
                     )}
                   </div>
