@@ -1290,7 +1290,15 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
           </div>
         </div>
 
-        <div style={{ position: 'relative' }}>
+        <div
+          className="equipos-category-selector-wrap"
+          style={{
+            position: 'relative',
+            flex: '1 1 260px',
+            maxWidth: '380px',
+            width: '100%',
+          }}
+        >
           <button
             type="button"
             onClick={() => setMenuCategoriasOpen((prev) => !prev)}
@@ -1307,15 +1315,15 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               fontSize: '13.5px',
               fontWeight: 600,
               cursor: 'pointer',
-              minWidth: '260px',
+              width: '100%',
               justifyContent: 'space-between',
               boxShadow: 'var(--shadow-sm)',
               transition: 'all 150ms ease',
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center' }}>{activeTabObj.icon}</span>
-              <span>{activeTabObj.label}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+              <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{activeTabObj.icon}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTabObj.label}</span>
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               <span
@@ -1355,9 +1363,9 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
               style={{
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
+                left: 0,
                 right: 0,
-                width: '320px',
-                maxWidth: 'calc(100vw - 32px)',
+                width: '100%',
                 background: 'var(--surface)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '12px',
@@ -1367,8 +1375,9 @@ export default function EquiposList({ moduloActivo = 'todos', onSelectModulo, on
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '2px',
-                maxHeight: '420px',
+                maxHeight: '380px',
                 overflowY: 'auto',
+                boxSizing: 'border-box',
               }}
             >
               <div
